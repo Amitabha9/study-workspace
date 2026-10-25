@@ -58,6 +58,9 @@ th,td{padding:8px;min-width:120px}
 
 @media print{nav,#uploadCard,#readerCard,.no-print,header p,footer{display:none!important}body{background:#fff}main{padding:0}.table-wrap{max-height:none;overflow:visible}th{position:static}}
 @media print{body.print-reading header,body.print-reading nav,body.print-reading #uploadCard,body.print-reading #vocabCard,body.print-reading #flashCardArea,body.print-reading #allFlashArea,body.print-reading footer,body.print-reading .no-print{display:none!important}body.print-reading #readerCard{display:block!important}body.print-reading #readerCard>.card{border:0;padding:0;margin:0}body.print-reading .workspace{display:block}body.print-reading .dictionary-panel{display:none!important}body.print-reading .reader-main{border:0}body.print-reading .pdf-stage{display:block!important;max-height:none;overflow:visible;background:#fff;padding:0}body.print-reading .pdf-page-wrap{display:block;page-break-after:always}body.print-reading #pdfCanvas{max-width:100%;height:auto;box-shadow:none}body.print-reading #pdfTextLayer{display:none!important}body.print-reading #textMaterial{display:block!important;max-height:none;overflow:visible;border:0;padding:0;white-space:pre-wrap}}
+
+/* Simplified interface: remove the all-saved-vocabulary flashcard panel. */
+#allFlashArea{display:none!important}
 </style>
 </head>
 <body>
@@ -433,7 +436,7 @@ $("allFlashcard").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "
 $("allKnowWellBtn").addEventListener("click",()=>rateAll("well"));
 $("allKnowSomeBtn").addEventListener("click",()=>rateAll("some"));
 $("allDontKnowBtn").addEventListener("click",()=>rateAll("unknown"));
-// Start with a clean reading workspace each time. Saved vocabulary remains stored by subject/chapter.
+// Start clean on every page load: do not retain previously opened/uploaded study files or reading content. Vocabulary remains stored separately.
  $("readerCard").classList.add("hidden");$("pdfFile").value="";if($("pastedReading"))$("pastedReading").value="";$("selectedEnglish").value="";$("selectedVietnamese").value="";$("entryWord").value="";$("entryMeaning").value="";
  populateAllSubjects();
  loadWords();startAllReview();
