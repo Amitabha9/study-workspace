@@ -19,7 +19,7 @@ label{font-weight:bold;display:block;margin-bottom:4px}
 h2{font-size:22px;margin:0 0 10px}h3{font-size:18px;margin:10px 0}
 .muted{font-size:14px;color:var(--muted)}.hidden{display:none!important}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1;min-width:160px}
-.workspace{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(370px,0.85fr);gap:16px;align-items:start}.reader-main{min-width:0}.dictionary-panel{position:static;max-height:none;overflow:visible;min-width:0}.text-material{width:100%;max-height:none;min-height:60vh}
+.workspace{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,0.68fr);gap:16px;align-items:start}.reader-main{min-width:0}.dictionary-panel{position:static;max-height:none;overflow:visible;min-width:0}.text-material{width:100%;max-height:none;min-height:60vh}
 .panel{padding:0;overflow:hidden;min-width:0}
 .panel-title{padding:10px 14px;background:#edf3ef;border-bottom:1px solid var(--border);font-weight:bold}
 .panel-body{padding:13px}
@@ -100,7 +100,6 @@ th,td{padding:8px;min-width:120px}
 <div class="panel-body">
 <p class="muted">Select a word in the reading or type it below. Check or edit the Vietnamese meaning, then tap Save word once.</p>
 <label for="selectedEnglish">1. English word</label><input id="selectedEnglish" placeholder="Type an English word" autocomplete="off">
-<label for="selectedPos" style="margin-top:10px">Part of speech</label><select id="selectedPos"><option value="N">N — Noun</option><option value="Adj">Adj — Adjective</option><option value="Adv">Adv — Adverb</option><option value="V">V — Verb</option><option value="Other">Other</option></select>
 <label for="selectedVietnamese" style="margin-top:10px">2. Vietnamese meaning</label><textarea id="selectedVietnamese" rows="3" placeholder="Meaning will appear here when available, or type it yourself" aria-live="polite"></textarea>
 <form id="wordEntryForm" style="margin-top:14px">
 <input id="entryWord" type="hidden">
@@ -354,6 +353,13 @@ document.addEventListener("touchend",handleTextSelection,{passive:true});
 document.addEventListener("touchend",()=>setTimeout(handleTextSelection,180),{passive:true});
 document.addEventListener("selectionchange",()=>{clearTimeout(window.__studySelectionTimer);window.__studySelectionTimer=setTimeout(handleTextSelection,120)});
 document.addEventListener("keyup",e=>{if(["Shift","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Control","Meta"].includes(e.key))handleTextSelection()});
+function inferPartOfSpeech(word){
+ const w=(word||"").trim().toLowerCase();
+ if(/ly$/.test(w) && !/(family|daily|early|only|likely|friendly|lonely)$/.test(w)) return "Adv";
+ if(/(ous|ful|less|able|ible|al|ic|ive|ary|ory|ant|ent)$/.test(w)) return "Adj";
+ if(/(ate|en|ify|ise|ize)$/.test(w)) return "V";
+ return "N";
+}
 $("wordEntryForm").addEventListener("submit",async e=>{
  e.preventDefault();if(savingWord)return;savingWord=true;
  const saveButton=$("wordEntryForm").querySelector('button[type="submit"]');if(saveButton)saveButton.disabled=true;
@@ -365,8 +371,8 @@ $("wordEntryForm").addEventListener("submit",async e=>{
   const finalMeaning=$("selectedVietnamese").value.trim()||$("entryMeaning").value.trim();
   if(!finalMeaning){$("entryStatus").textContent="Translation unavailable. Type the Vietnamese meaning, then tap Save word.";return;}
   const existing=words.find(w=>w.word.toLowerCase()===word.toLowerCase());
-  if(existing){existing.meaning=finalMeaning;existing.pos=$("selectedPos").value;persist();renderWords();renderFlash();$("entryStatus").textContent='Updated “'+word+'” and saved it.';}
-  else{words.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),word,meaning:finalMeaning,pos:$("selectedPos").value,ipa:"",connection:"",forms:"",synonyms:""});persist();renderWords();renderFlash();$("entryStatus").textContent='Saved “'+word+'” to this device. It now appears in Saved vocabulary.';}
+  if(existing){existing.meaning=finalMeaning;existing.pos=inferPartOfSpeech(word);persist();renderWords();renderFlash();$("entryStatus").textContent='Updated “'+word+'” and saved it.';}
+  else{words.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),word,meaning:finalMeaning,pos:inferPartOfSpeech(word),ipa:"",connection:"",forms:"",synonyms:""});persist();renderWords();renderFlash();$("entryStatus").textContent='Saved “'+word+'” to this device. It now appears in Saved vocabulary.';}
   populateAllSubjects();
   $("entryWord").value="";$("entryMeaning").value="";
   $("selectedEnglish").value=word;$("selectedVietnamese").value=finalMeaning;
