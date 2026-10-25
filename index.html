@@ -66,7 +66,7 @@ th,td{padding:8px;min-width:120px}
 <body>
 <header><h1>Study Workspace</h1><p>Read, select a word, check Vietnamese, and save with one tap.</p></header>
 <nav class="no-print" aria-label="Reading controls">
-<button id="fontDown" type="button">A− Smaller text</button><button id="fontUp" type="button">A+ Larger text</button><button id="fontReset" type="button">Default text</button>
+
 </nav>
 <main>
 <section class="card" id="uploadCard">
@@ -86,7 +86,7 @@ th,td{padding:8px;min-width:120px}
 <div class="card">
 <h2>Reading</h2>
 <div class="toolbar no-print">
-<button id="prevPage">Previous page</button><span id="pageCounter">Page —</span><button id="nextPage">Next page</button><button id="zoomOutBtn" type="button">Zoom −</button><button id="zoomInBtn" type="button">Zoom +</button><button id="saveReadingPdfBtn" class="primary">Save this reading as PDF</button>
+<button id="prevPage">Previous page</button><span id="pageCounter">Page —</span><button id="nextPage">Next page</button><button id="zoomOutBtn" type="button">Zoom −</button><button id="zoomInBtn" type="button">Zoom +</button>
 
 </div>
 <div class="workspace">
@@ -100,6 +100,7 @@ th,td{padding:8px;min-width:120px}
 <div class="panel-body">
 <p class="muted">Select a word in the reading or type it below. Check or edit the Vietnamese meaning, then tap Save word once.</p>
 <label for="selectedEnglish">1. English word</label><input id="selectedEnglish" placeholder="Type an English word" autocomplete="off">
+<label for="selectedPos" style="margin-top:10px">Part of speech</label><select id="selectedPos"><option value="N">N — Noun</option><option value="Adj">Adj — Adjective</option><option value="Adv">Adv — Adverb</option><option value="V">V — Verb</option><option value="Other">Other</option></select>
 <label for="selectedVietnamese" style="margin-top:10px">2. Vietnamese meaning</label><textarea id="selectedVietnamese" rows="3" placeholder="Meaning will appear here when available, or type it yourself" aria-live="polite"></textarea>
 <form id="wordEntryForm" style="margin-top:14px">
 <input id="entryWord" type="hidden">
@@ -179,7 +180,7 @@ function renderWords(){
  if(!words.length){const tr=document.createElement("tr"),td=safe("td","No words saved yet.");td.colSpan=3;tr.append(td);body.append(tr)}
  words.forEach(w=>{
   const tr=document.createElement("tr");
-  const c1=safe("td",w.word||"");const c2=safe("td",w.meaning||"");const c3=document.createElement("td");c3.className="no-print";
+  const c1=safe("td",(w.word||"")+(w.pos?" ("+w.pos+")":""));const c2=safe("td",w.meaning||"");const c3=document.createElement("td");c3.className="no-print";
   const edit=safe("button","Edit");edit.addEventListener("click",()=>{const nw=prompt("English word",w.word||"");if(nw===null)return;const vi=prompt("Vietnamese meaning",w.meaning||"");if(vi===null)return;w.word=nw.trim();w.meaning=vi.trim();persist();renderWords();renderFlash();});
   const del=safe("button","Delete");del.addEventListener("click",()=>{if(confirm("Delete this word from this chapter?")){words=words.filter(x=>x.id!==w.id);persist();renderWords();renderFlash()}});
   c3.append(edit,del);tr.append(c1,c2,c3);body.append(tr)
@@ -303,29 +304,7 @@ if($("showPastedReading"))$("showPastedReading").addEventListener("click",()=>{
  setStatus("Reading opened. Select a word to look up its Vietnamese meaning, then save it in the dictionary below.");go("readerCard");
 });
 $("prevPage").addEventListener("click",()=>renderPage(page-1));$("nextPage").addEventListener("click",()=>renderPage(page+1));window.addEventListener("resize",()=>{if(pdfDoc&&sourceKind==="pdf"&&!busy)renderPage(page)});
-$("saveReadingPdfBtn").addEventListener("click",async()=>{
- if($('readerCard').classList.contains('hidden'))return;
- const suggested=(sourceFileName||context().chapter||"Study reading").replace(/\.pdf$/i,"").replace(/[\/:*?"<>|]/g,"-").trim()||"Study reading";
- const name=prompt("Name this PDF file:",suggested);if(name===null)return;
- const filename=(name.trim()||suggested)+".pdf";
- if(sourceKind==="pdf"&&originalPdfBytes){
-  try{
-   if(window.showSaveFilePicker){
-    const handle=await window.showSaveFilePicker({suggestedName:filename,types:[{description:"PDF document",accept:{"application/pdf":[".pdf"]}}]});
-    const writable=await handle.createWritable();await writable.write(originalPdfBytes);await writable.close();
-    setStatus("PDF saved. You chose the file name and folder.");
-   }else{
-    const url=URL.createObjectURL(new Blob([originalPdfBytes],{type:"application/pdf"})),a=document.createElement("a");a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
-    setStatus("Original PDF downloaded. Choose its folder in your browser download settings.");
-   }
-  }catch(err){if(err&&err.name!=="AbortError")setStatus("Could not save PDF: "+err.message)}
-  return;
- }
- const oldTitle=document.title;document.title=filename.replace(/\.pdf$/i,"");
- document.body.classList.add("print-reading");
- const restore=()=>{document.body.classList.remove("print-reading");document.title=oldTitle;window.removeEventListener("afterprint",restore)};
- window.addEventListener("afterprint",restore);window.print();setTimeout(restore,1500);
-});
+
 // Standard browser selection and copy are used; no dictionary lookup runs.
 $("textMaterial").addEventListener("mouseup",()=>{});
 let manualLookupTimer=null;
@@ -341,27 +320,26 @@ let translationRequest=0;let translationPromise=Promise.resolve();let savingWord
 function getTranslationCache(){try{return JSON.parse(localStorage.getItem("study-en-vi-cache-v1")||"{}")}catch{return {}}}
 function saveTranslationCache(cache){try{localStorage.setItem("study-en-vi-cache-v1",JSON.stringify(cache))}catch{}}
 function showSelectedWord(raw){
- const word=(raw||"").trim().replace(/^[^A-Za-z]+|[^A-Za-z'-]+$/g,"").split(/\s+/)[0];
- if(!word)return Promise.resolve();
- if(word.toLowerCase()===lastSelectedWord.toLowerCase() && $("selectedEnglish").value.trim().toLowerCase()===word.toLowerCase())return translationPromise;
- lastSelectedWord=word;
- $("selectedEnglish").value=word;$("entryWord").value=word;
- const cache=getTranslationCache(),cached=cache[word.toLowerCase()];
+ const phrase=(raw||"").trim().replace(/^[^A-Za-z]+|[^A-Za-z0-9’' -]+$/g,"").replace(/\s+/g," ");
+ if(!phrase)return Promise.resolve();
+ if(phrase.toLowerCase()===lastSelectedWord.toLowerCase() && $("selectedEnglish").value.trim().toLowerCase()===phrase.toLowerCase())return translationPromise;
+ lastSelectedWord=phrase;
+ $("selectedEnglish").value=phrase;$("entryWord").value=phrase;
+ const cache=getTranslationCache(),cached=cache[phrase.toLowerCase()];
  const request=++translationRequest;
  if(cached){$("selectedVietnamese").value=cached;$("entryMeaning").value=cached;$("entryStatus").textContent="Meaning loaded. Tap Save word once.";translationPromise=Promise.resolve();return translationPromise;}
- // Keep the field usable immediately; automatic lookup is a convenience, not a requirement.
  $("selectedVietnamese").value="";$("entryMeaning").value="";
+ $("entryStatus").textContent="Looking up Vietnamese meaning…";
  translationPromise=(async()=>{try{
-  const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(word)+"&langpair=en|vi";
+  const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(phrase)+"&langpair=en|vi";
   const response=await fetch(url);if(!response.ok)throw new Error("Translation service unavailable");
   const data=await response.json();const meaning=(data.responseData&&data.responseData.translatedText||"").trim();
   if(request!==translationRequest)return;
   if(meaning&&!/MYMEMORY WARNING|PLEASE SELECT/i.test(meaning)){
-   cache[word.toLowerCase()]=meaning;saveTranslationCache(cache);
-   // Do not overwrite a meaning the user has started typing.
+   cache[phrase.toLowerCase()]=meaning;saveTranslationCache(cache);
    if(document.activeElement!==$("selectedVietnamese")||!$("selectedVietnamese").value){$("selectedVietnamese").value=meaning;$("entryMeaning").value=meaning;$("entryStatus").textContent="Vietnamese meaning loaded. Tap Save word once."}
-  }
- }catch(e){if(request===translationRequest)$("entryStatus").textContent="Automatic translation unavailable. Type the Vietnamese meaning, then tap Save word."}})();return translationPromise;
+  } else {$("entryStatus").textContent="Translation unavailable. You can enter the Vietnamese meaning manually."}
+ }catch(e){if(request===translationRequest){$("entryStatus").textContent="Automatic translation unavailable. Type the Vietnamese meaning, then tap Save word."}}})();return translationPromise;
 }
 function handleTextSelection(){
  const sel=window.getSelection();if(!sel||!sel.toString().trim())return;
@@ -369,7 +347,7 @@ function handleTextSelection(){
  const inPdf=[anchor,focus].some(n=>n&&($("pdfTextLayer").contains(n.nodeType===1?n:n.parentElement)));
  const inText=[anchor,focus].some(n=>n&&($("textMaterial").contains(n.nodeType===1?n:n.parentElement)));
  if(!inPdf&&!inText)return;
- const chosen=sel.toString().trim();if(chosen.split(/\s+/).length>1){const last=chosen.split(/\s+/).filter(Boolean).pop();showSelectedWord(last)}else showSelectedWord(chosen);
+ const chosen=sel.toString().trim();showSelectedWord(chosen);
 }
 document.addEventListener("mouseup",handleTextSelection);
 document.addEventListener("touchend",handleTextSelection,{passive:true});
@@ -387,8 +365,8 @@ $("wordEntryForm").addEventListener("submit",async e=>{
   const finalMeaning=$("selectedVietnamese").value.trim()||$("entryMeaning").value.trim();
   if(!finalMeaning){$("entryStatus").textContent="Translation unavailable. Type the Vietnamese meaning, then tap Save word.";return;}
   const existing=words.find(w=>w.word.toLowerCase()===word.toLowerCase());
-  if(existing){existing.meaning=finalMeaning;persist();renderWords();renderFlash();$("entryStatus").textContent='Updated “'+word+'” and saved it.';}
-  else{words.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),word,meaning:finalMeaning,pos:"",ipa:"",connection:"",forms:"",synonyms:""});persist();renderWords();renderFlash();$("entryStatus").textContent='Saved “'+word+'” to this device. It now appears in Saved vocabulary.';}
+  if(existing){existing.meaning=finalMeaning;existing.pos=$("selectedPos").value;persist();renderWords();renderFlash();$("entryStatus").textContent='Updated “'+word+'” and saved it.';}
+  else{words.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),word,meaning:finalMeaning,pos:$("selectedPos").value,ipa:"",connection:"",forms:"",synonyms:""});persist();renderWords();renderFlash();$("entryStatus").textContent='Saved “'+word+'” to this device. It now appears in Saved vocabulary.';}
   populateAllSubjects();
   $("entryWord").value="";$("entryMeaning").value="";
   $("selectedEnglish").value=word;$("selectedVietnamese").value=finalMeaning;
@@ -414,9 +392,9 @@ $("nextFlash").addEventListener("click",()=>{if(words.length){flashIndex=(flashI
 $("shuffleFlash").addEventListener("click",()=>{if(words.length){flashIndex=Math.floor(Math.random()*words.length);flashBack=false;renderFlash()}});
 $("zoomInBtn").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.min(3,zoom+0.25);renderPage(page)}else{fontSize=Math.min(36,fontSize+2);$("textMaterial").style.fontSize=fontSize+"px"}});
 $("zoomOutBtn").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.max(0.5,zoom-0.25);renderPage(page)}else{fontSize=Math.max(14,fontSize-2);$("textMaterial").style.fontSize=fontSize+"px"}});
-$("fontUp").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.min(2.2,zoom+0.15);renderPage(page)}else{fontSize=Math.min(30,fontSize+2);$("textMaterial").style.fontSize=fontSize+"px"}});
-$("fontDown").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.max(0.6,zoom-0.15);renderPage(page)}else{fontSize=Math.max(14,fontSize-2);$("textMaterial").style.fontSize=fontSize+"px"}});
-$("fontReset").addEventListener("click",()=>{zoom=1;fontSize=18;if(pdfDoc&&sourceKind==="pdf")renderPage(page);$("textMaterial").style.fontSize=fontSize+"px"});
+
+
+
 $("knowWellBtn").addEventListener("click",()=>rateChapter("well"));
 $("knowSomeBtn").addEventListener("click",()=>rateChapter("some"));
 $("dontKnowBtn").addEventListener("click",()=>rateChapter("unknown"));
