@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Reader & Vocabulary</title>
+<style>
+:root{--green:#175c49;--pale:#e8f3ed;--border:#d8e1dc;--text:#24332d;--muted:#65756d}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6f4;color:var(--text);font:16px/1.55 Arial,sans-serif}
+header{background:#173b32;color:#fff;padding:22px max(18px,calc((100% - 1450px)/2))}
+header h1{font-size:25px;margin:0}header p{margin:4px 0 0;color:#dcebe4}
+nav{position:sticky;top:0;z-index:4;background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap}
+main{max-width:1600px;margin:auto;padding:14px}
+button,input,select,textarea{font:inherit}button{border:1px solid var(--border);background:#fff;border-radius:8px;padding:8px 13px;cursor:pointer;color:var(--text)}button:hover{background:var(--pale)}button.primary{background:var(--green);border-color:var(--green);color:#fff}
+input,select,textarea{padding:9px;border:1px solid #bdcbc3;border-radius:7px;width:100%;background:#fff;color:var(--text)}
+label{font-weight:bold;display:block;margin-bottom:4px}
+.card,.panel{background:#fff;border:1px solid var(--border);border-radius:12px;padding:17px;margin-bottom:16px}
+h2{font-size:22px;margin:0 0 10px}h3{font-size:18px;margin:10px 0}
+.muted{font-size:14px;color:var(--muted)}.hidden{display:none!important}
+#allFlashArea{display:none!important}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1;min-width:160px}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,320px);gap:12px;align-items:start}.reader-main{min-width:0}.dictionary-panel{position:sticky;top:74px;height:calc(100vh - 90px);max-height:calc(100vh - 90px);overflow:hidden;min-width:0;display:flex;flex-direction:column}.dictionary-panel .panel-title{flex:0 0 auto}.dictionary-panel .panel-body{overflow-y:auto;min-height:0;flex:1 1 auto;padding:12px}.text-material{width:100%;max-height:none;min-height:60vh}
+.panel{padding:0;overflow:hidden;min-width:0}
+.panel-title{padding:10px 14px;background:#edf3ef;border-bottom:1px solid var(--border);font-weight:bold}
+.panel-body{padding:8px}.dictionary-panel .panel-title{padding:8px 9px;font-size:14px}.dictionary-panel .muted{font-size:12px;line-height:1.4}.dictionary-panel label{font-size:14px}.dictionary-panel input,.dictionary-panel textarea{font-size:13px;padding:8px;min-width:0;max-width:100%}#selectedEnglish{font-size:12px;letter-spacing:-.1px;overflow-x:auto;white-space:nowrap}#selectedVietnamese{overflow-wrap:anywhere}.action-column{display:table-cell!important}.word-list td.no-print{display:table-cell!important}.word-save-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;position:sticky;bottom:0;background:#fff;padding:8px 0;margin:8px 0 0;z-index:3;border-top:1px solid var(--border)}.word-save-actions button{width:100%;min-height:46px;padding:11px 8px;white-space:normal;font-weight:700;font-size:15px}.word-save-actions button.primary{background:#0b6b4f;border:2px solid #084c39;color:#fff;box-shadow:0 2px 5px rgba(0,0,0,.18)}.word-save-actions button.primary:focus{outline:3px solid #e0b44c;outline-offset:2px}.word-save-actions{box-shadow:0 -2px 5px rgba(0,0,0,.05)}#entryStatus{margin-top:8px;font-size:13px}
+.pdf-stage{background:#e8ece9;padding:10px;max-height:70vh;overflow:auto;text-align:center}
+/* Keep the canvas at its rendered width so the selectable text overlay stays aligned when zoomed. */
+#pdfCanvas{display:block;max-width:none;height:auto;background:white;margin:0 auto;box-shadow:0 1px 5px #999}.pdf-stage{background:#dfe4e1;padding:10px;max-height:76vh;overflow:auto;text-align:center}.pdf-page-wrap{display:flex;justify-content:center;min-width:0}
+.pdf-page-layer{position:relative;display:inline-block;line-height:1}
+#pdfCanvas{position:relative;z-index:1}
+#pdfTextLayer{position:absolute;inset:0;z-index:2;overflow:hidden;text-align:left;line-height:1;user-select:text;-webkit-user-select:text}
+#pdfTextLayer span{position:absolute;white-space:pre;transform-origin:0% 0%;color:transparent;cursor:text;line-height:1;font-family:Arial,sans-serif}
+#pdfTextLayer span::selection{background:rgba(75,160,255,.45);color:transparent}
+#pageText{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;line-height:1.9;font-size:18px}
+#pageText::selection{background:#a9d7ff}
+.status{padding:9px;background:#f0f5f2;border-radius:7px;overflow-wrap:anywhere}.text-material{background:#fff;white-space:pre-wrap;line-height:1.85;font-size:19px;padding:20px;max-height:70vh;overflow:auto;border:1px solid var(--border);border-radius:8px;user-select:text}.text-material::selection{background:#a9d7ff}
+.table-wrap{overflow:auto;max-height:620px;border:1px solid var(--border);border-radius:8px}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:10px;text-align:left;vertical-align:top;min-width:150px;overflow-wrap:anywhere;white-space:normal}
+th{position:sticky;top:0;background:#edf3ef;z-index:1}
+td:last-child,th:last-child{border-right:0}
+.word-list{max-height:620px;overflow-y:auto}
+.flashcard{min-height:190px;border:2px solid var(--green);border-radius:14px;background:#fafffc;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;cursor:pointer;overflow-wrap:anywhere}
+.flash-main{font-size:28px;font-weight:bold}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.reader-page-controls{position:sticky;top:62px;z-index:7;background:rgba(255,255,255,.97);padding:8px 10px;border:1px solid var(--border);border-radius:10px;box-shadow:0 2px 8px rgba(20,40,30,.10);align-items:center}.reader-page-controls button{padding:7px 11px}.reader-page-controls #pageCounter{font-weight:bold;padding:0 5px}
+.small{font-size:13px}.notice{background:#fff7e5;border-left:4px solid #d2a142;padding:10px;font-size:14px;margin:10px 0}
+@media(max-width:1050px){.workspace{grid-template-columns:minmax(0,1fr) minmax(260px,300px)}}
+@media(max-width:800px){.workspace{grid-template-columns:minmax(0,1fr)}.dictionary-panel{position:static;height:auto;max-height:none;overflow:visible}.dictionary-panel .panel-body{overflow:visible}main{padding:10px}.card{padding:12px}body{font-size:16px}}
+@media(max-width:380px){.word-save-actions{grid-template-columns:1fr}.dictionary-panel .panel-title{font-size:15px}}
+@media print{nav,#uploadCard,#readerCard,.no-print,header p,footer{display:none!important}body{background:#fff}main{padding:0}.table-wrap{max-height:none;overflow:visible}th{position:static}}
+@media print{body.print-reading header,body.print-reading nav,body.print-reading #uploadCard,body.print-reading #vocabCard,body.print-reading #flashCardArea,body.print-reading #allFlashArea,body.print-reading footer,body.print-reading .no-print{display:none!important}body.print-reading #readerCard{display:block!important}body.print-reading #readerCard>.card{border:0;padding:0;margin:0}body.print-reading .workspace{display:block}body.print-reading .dictionary-panel{display:none!important}body.print-reading .reader-main{border:0}body.print-reading .pdf-stage{display:block!important;max-height:none;overflow:visible;background:#fff;padding:0}body.print-reading .pdf-page-wrap{display:block;page-break-after:always}body.print-reading #pdfCanvas{max-width:100%;height:auto;box-shadow:none}body.print-reading #pdfTextLayer{display:none!important}body.print-reading #textMaterial{display:block!important;max-height:none;overflow:visible;border:0;padding:0;white-space:pre-wrap}}
+
+/* Save controls stay visible at normal 100% zoom */
+.dictionary-panel{min-height:0;display:flex;flex-direction:column}
+.dictionary-panel .panel-body{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+#wordEntryForm{padding-bottom:12px}
+.word-save-actions{position:sticky;bottom:0;z-index:20;background:#fff;padding:10px 0 8px;margin:12px 0 0;border-top:1px solid #d7e1dc}
+.word-save-actions button[type="submit"]{display:block;width:100%;min-height:52px;font-size:18px;font-weight:800;letter-spacing:.2px;background:#087451;color:#fff;border:3px solid #064d37;border-radius:12px;box-shadow:0 3px 0 #064d37}
+#entryStatus{display:block;min-height:36px;padding:8px 10px;margin:8px 0 0;background:#f3f7f5;border-radius:8px;overflow-wrap:anywhere}
+
+
+#vocabCard{scroll-margin-top:18px}
+#vocabCard .word-list{min-height:90px}
+#vocabCard #vocabBody tr td{padding:10px 12px}
+
+</style>
+</head>
+<body>
+<header><h1>Study Workspace</h1><p>Keep the original material. Save words as you learn.</p></header>
+<nav class="no-print">
+<button onclick="go('uploadCard')">Open textbook</button>
+<button onclick="go('vocabCard')">Chapter vocabulary</button>
+<button onclick="go('flashCardArea')">Chapter review</button>
+<button id="fontDown">A−</button><button id="fontUp">A+</button><button id="fontReset">Default text</button>
+</nav>
+<main>
+<section class="card" id="uploadCard">
+<h2>Open PDF to read and look up words</h2>
+<div class="row">
+<div><label for="subject">Subject</label><input id="subject" value="Human Biology" placeholder="e.g. Biology, Chemistry, Psychology"></div>
+<div id="chapterField" class="hidden"><label for="chapter">Chapter</label><input id="chapter" value="Reading vocabulary" placeholder="Chapter"></div>
+</div>
+<div style="margin-top:12px"><label for="pdfFile">Upload your original PDF (or optional notes)</label><input id="pdfFile" type="file" accept=".pdf,application/pdf,.txt,.md,.pptx"></div>
+<div style="margin-top:12px" class="hidden"><label for="pastedReading">Paste reading</label><textarea id="pastedReading" rows="6"></textarea></div>
+<div class="toolbar"><button id="readBtn" class="primary" disabled>Open PDF</button><button id="saveContextBtn">New reading</button></div>
+<div id="status" class="status" role="status">Choose a PDF, TXT, or MD file to begin.</div>
+<p class="muted">The PDF is opened locally in your browser and is not uploaded to this website. Vocabulary and review progress stay in this browser unless you export a backup.</p>
+</section>
+
+<section id="readerCard" class="hidden">
+<div class="card">
+
+<div class="toolbar no-print reader-page-controls">
+<button id="prevPage">Previous page</button><span id="pageCounter">Page —</span><button id="nextPage">Next page</button><button id="saveReadingPdfBtn" class="primary">Save original PDF</button>
+
+</div>
+<div class="workspace">
+<div class="reader-main panel">
+<div class="panel-title hidden" id="sourcePanelTitle">Original PDF content — unchanged</div>
+<div id="pdfStage" class="pdf-stage hidden"><div class="pdf-page-wrap"><div class="pdf-page-layer" id="pdfPageLayer"><canvas id="pdfCanvas"></canvas><div id="pdfTextLayer" aria-label="Selectable PDF text layer"></div></div></div></div>
+<div id="textMaterial" class="text-material hidden" tabindex="0"></div>
+</div>
+<aside class="dictionary-panel panel" id="dictionaryPanel">
+<div class="panel-title">Word meaning &amp; add to vocabulary</div>
+<div class="panel-body">
+<p class="muted">Select a word in the PDF or type it. The Vietnamese meaning appears when available; you can edit it before saving to Chapter vocabulary.</p>
+<label for="selectedEnglish">1. English word</label><input id="selectedEnglish" placeholder="Type an English word" autocomplete="off">
+<label for="selectedVietnamese" style="margin-top:10px">2. Vietnamese meaning</label><textarea id="selectedVietnamese" rows="3" placeholder="Meaning will appear here when available, or type it yourself" aria-live="polite"></textarea>
+<form id="wordEntryForm" style="margin-top:14px">
+<input id="entryWord" type="hidden">
+<textarea id="entryMeaning" hidden></textarea>
+<div class="toolbar word-save-actions"><button type="submit" class="primary">Save word</button><button type="button" id="clearEntryBtn">Clear fields</button></div>
+<div id="entryStatus" class="status" role="status">Words are saved in this browser under the selected subject and chapter.</div>
+</form>
+</div>
+</aside>
+</div>
+</div>
+</section>
+
+<section class="card" id="vocabCard">
+<h2>3. Chapter vocabulary</h2>
+<p class="muted">Words you save while reading appear here. The list shows English, part of speech (n, adj, v, etc.), Vietnamese meaning, and an Edit column.</p>
+<div class="toolbar no-print">
+<button class="primary" id="compileBtn">Refresh chapter list</button><button id="exportBtn">Download CSV</button><button id="exportJsonBtn">Download study backup (JSON)</button><button id="importJsonBtn">Import study backup</button><input id="importJsonFile" type="file" accept=".json,application/json" class="hidden"><button id="printBtn">Print / Save as PDF</button><button id="clearWordsBtn">Clear this chapter's words</button>
+</div>
+<div id="vocabStatus" class="muted" role="status"></div>
+<div class="table-wrap word-list">
+<table><thead><tr><th>English / Part of speech</th><th>Vietnamese</th><th>Edit</th><th>Edit</th></tr></thead>
+<tbody id="vocabBody"><tr><td colspan="3">No words saved yet.</td></tr></tbody></table>
+</div>
+
+</section>
+
+<section class="card" id="flashCardArea">
+<h2>Quick vocabulary review</h2>
+<p class="muted">Review the words you saved. Click a card to see its Vietnamese meaning.</p>
+<div class="toolbar no-print"><button id="prevFlash">Previous</button><button class="primary" id="flipFlash">Flip card</button><button id="nextFlash">Next</button><button id="shuffleFlash">Shuffle</button></div>
+<div id="flashcard" class="flashcard" tabindex="0" role="button" aria-label="Flashcard. Click to flip."><div><div class="flash-main">No saved words yet</div><div class="muted">The English word appears on the front; Vietnamese meaning appears when flipped.</div></div></div>
+<p id="flashCount" class="muted"></p>
+<div class="toolbar no-print"><strong>How well did you know this word?</strong><button id="knowWellBtn">Easy</button><button id="knowSomeBtn">Hard</button><button id="dontKnowBtn">Repeat</button><button id="harderBtn">Harder</button></div>
+<p class="muted">Easy, Hard, Harder, and Repeat set different review intervals. Progress is saved in this browser and can be included in a study backup.</p>
+<div id="reviewStatus" class="status hidden" role="status"></div>
+<div class="toolbar no-print"><button id="reviewDueBtn" class="primary">Review saved words</button><button id="reviewAllChapterBtn" class="hidden">Review all chapter words</button></div>
+</section>
+
+<section class="card" id="allFlashArea">
+<h2>5. Flashcards for any subject — without opening a chapter</h2>
+<p>Choose a subject folder and optionally a chapter. Select “All subjects” to practice vocabulary across all saved subjects. This gathers words you have already saved in this browser.</p>
+<div class="row">
+ <div><label for="allSubjectSelect">Subject / folder</label><select id="allSubjectSelect"><option value="">All subjects</option></select></div>
+ <div><label for="allChapterSelect">Chapter</label><select id="allChapterSelect"><option value="">All chapters</option></select></div>
+ <div><label for="allReviewFilter">Review group</label><select id="allReviewFilter"><option value="due">Due / not-yet-known</option><option value="all">All saved words</option><option value="well">Know well</option><option value="some">Know a little</option><option value="unknown">Don't know yet</option></select></div>
+</div>
+<div class="toolbar no-print"><button id="refreshAllFlash">Refresh subjects and words</button><button id="startAllReview" class="primary">Start review</button><button id="shuffleAllFlash">Shuffle</button></div>
+<div id="allFlashStatus" class="status" role="status">Choose a subject and start reviewing.</div>
+<div id="allFlashcard" class="flashcard" tabindex="0" role="button" aria-label="All-subject flashcard. Click to flip."><div><div class="flash-main">No cards loaded</div><div class="muted">The English word appears on the front; Vietnamese meaning appears when flipped.</div></div></div>
+<p id="allFlashCount" class="muted"></p>
+<div class="toolbar no-print"><button id="allPrevFlash">Previous</button><button id="allFlipFlash" class="primary">Flip card</button><button id="allNextFlash">Next</button><button id="allKnowWellBtn">Know well</button><button id="allKnowSomeBtn">Know a little</button><button id="allDontKnowBtn">Don't know yet</button></div>
+<p class="muted">Important: this version stores words and ratings in this browser on this device. Gmail sign-in and cloud syncing are not implemented yet.</p>
+</section>
+</main>
+<footer class="muted" style="text-align:center;padding:20px">Free local study tool · No account required · PDFs are processed in your browser and are not uploaded to this website. Download a JSON study backup to preserve vocabulary and review progress.</footer>
+
+
+<!-- Compatibility placeholders for optional controls removed from this simplified interface -->
+<div hidden aria-hidden="true"><button id="openChapterBtn" type="button"></button><button id="saveChapterBtn" type="button"></button><button id="showPastedReading" type="button"></button></div>
+\n
+<!-- Compatibility placeholders for optional controls removed from this simplified interface -->
+<div hidden aria-hidden="true"><button id="openChapterBtn" type="button"></button><button id="saveChapterBtn" type="button"></button><button id="showPastedReading" type="button"></button></div>
+\n<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+let pdfDoc=null, originalPdfBytes=null, page=1, zoom=1, pageTexts=[], words=[], sourceKind="pdf", sourceFileName="", key="", flashIndex=0, flashBack=false, fontSize=18, busy=false, chapterReviewMode="all", allCards=[], allFlashIndex=0, allFlashBack=false;
+const vocabFields=["pos","forms","ipa","meaning","synonyms","connection"];
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+window.go=id=>$(id).scrollIntoView({behavior:"smooth",block:"start"});
+function context(){return {subject:$("subject").value.trim()||"General",chapter:$("chapter").value.trim()||"Untitled chapter"}}
+function makeKey(){const c=context();return "study-vocab-v3:"+c.subject.toLowerCase()+":"+c.chapter.toLowerCase()}
+function setStatus(t){$("status").textContent=t}
+function escapeCsv(v){return '"'+String(v||"").replace(/"/g,'""')+'"'}
+function loadWords(){key=makeKey();try{words=JSON.parse(localStorage.getItem(key)||"[]");if(!Array.isArray(words))words=[]}catch{words=[]}renderWords();renderFlash()}
+function startFreshChapter(){ pdfDoc=null;originalPdfBytes=null;page=1;pageTexts=[];sourceKind="pdf";sourceFileName="";words=[];key=makeKey(); $("pdfFile").value="";$("pastedReading").value="";$("readerCard").classList.add("hidden");$("pdfStage").classList.add("hidden");$("textMaterial").classList.add("hidden");$("selectedEnglish").value="";$("selectedVietnamese").value="";$("entryWord").value="";$("entryMeaning").value="";renderWords();renderFlash();setStatus("New study session. Upload a PDF and save the chapter when ready. Existing chapters remain available under Open saved chapter.");}
+function persist(){
+ key=makeKey();
+ try{localStorage.setItem(key,JSON.stringify(words));$("vocabStatus").textContent=words.length+" word(s) saved for "+context().chapter+" in this browser.";return true}
+ catch(error){console.error("Could not save vocabulary",error);$("vocabStatus").textContent="Could not save in this browser. Check browser storage settings, then export a backup.";return false}
+}
+function safe(tag,text){const e=document.createElement(tag);e.textContent=text||"—";return e}
+function renderWords(){
+ const body=$("vocabBody");body.replaceChildren();
+ if(!words.length){const tr=document.createElement("tr"),td=safe("td","No words saved yet.");td.colSpan=3;tr.append(td);body.append(tr)}
+ words.forEach(w=>{
+  const tr=document.createElement("tr");
+  const shownPos=w.pos||inferPartOfSpeech(w.word);const c1=safe("td",(w.word||"")+(shownPos ? " ("+shownPos+")" : ""));const c2=safe("td",w.meaning||"");const c3=document.createElement("td");c3.className="no-print";
+  const edit=safe("button","Edit");edit.title="Edit English word, Vietnamese meaning, and part of speech";edit.addEventListener("click",()=>{const nw=prompt("English word",w.word||"");if(nw===null)return;const vi=prompt("Vietnamese meaning",w.meaning||"");if(vi===null)return;const pos=prompt("Part of speech: n (noun), adj (adjective), v (verb), adv (adverb), etc.",w.pos||inferPartOfSpeech(nw));if(pos===null)return;w.word=nw.trim();w.meaning=vi.trim();w.pos=pos.trim()||inferPartOfSpeech(w.word);persist();renderWords();renderFlash();});
+  const del=safe("button","Delete");del.addEventListener("click",()=>{if(confirm("Delete this word from this chapter?")){words=words.filter(x=>x.id!==w.id);persist();renderWords();renderFlash()}});
+  c3.append(edit,del);tr.append(c1,c2,c3);body.append(tr)
+ });
+ $("vocabStatus").textContent=words.length+" word(s) saved for "+context().chapter+".";
+}
+function reviewData(w){try{return JSON.parse(localStorage.getItem("study-review-v1:"+w._storageKey+":"+w.id)||"{}")}catch{return {}}}
+function saveReview(w,level){
+ const intervals={well:7*86400000,some:24*60*60*1000,harder:60*60*1000,unknown:10*60*1000},old=reviewData(w);
+ localStorage.setItem("study-review-v1:"+w._storageKey+":"+w.id,JSON.stringify({level,lastReviewed:Date.now(),dueAt:Date.now()+intervals[level],seen:(old.seen||0)+1}));
+ const msg={well:"Easy — scheduled again in about 7 days.",some:"Hard — scheduled again in about 1 day.",harder:"Harder — scheduled again in about 1 hour.",unknown:"Repeat — scheduled again in about 10 minutes."}[level];
+ $("reviewStatus").textContent=msg;$("allFlashStatus").textContent='Saved rating for “'+w.word+'”: '+msg;
+}
+function isDue(w){const d=reviewData(w);return !d.level||!d.dueAt||d.dueAt<=Date.now()||d.level==="unknown"}
+function chapterCards(){return chapterReviewMode==="due"?words.filter(w=>isDue({...w,_storageKey:key})):chapterReviewMode==="well"?words.filter(w=>reviewData({...w,_storageKey:key}).level==="well"):chapterReviewMode==="some"?words.filter(w=>reviewData({...w,_storageKey:key}).level==="some"):chapterReviewMode==="unknown"?words.filter(w=>reviewData({...w,_storageKey:key}).level==="unknown"):words}
+function renderFlash(){
+ const list=chapterCards(),card=$("flashcard");card.replaceChildren();
+ if(!list.length){card.append(safe("div","No words in this review group"));$("flashCount").textContent="";return}
+ flashIndex=Math.max(0,Math.min(flashIndex,list.length-1));const w=list[flashIndex],wrap=document.createElement("div");
+ wrap.append(safe("div",flashBack?(w.meaning||"Translation not available yet"):w.word));
+ wrap.className="flash-main";card.append(wrap);$("flashCount").textContent="Card "+(flashIndex+1)+" of "+list.length+" · "+context().subject+" / "+context().chapter+" · "+chapterReviewMode;
+}
+function allVocabKeys(){const a=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("study-vocab-v3:"))a.push(k)}return a}
+function keyInfo(k){const rest=k.slice("study-vocab-v3:".length),i=rest.indexOf(":");return {key:k,subject:i<0?rest:rest.slice(0,i),chapter:i<0?"Untitled chapter":rest.slice(i+1)}}
+function readCards(k){try{const a=JSON.parse(localStorage.getItem(k)||"[]"),info=keyInfo(k);return Array.isArray(a)?a.map(w=>({...w,_storageKey:k,_subject:info.subject,_chapter:info.chapter})):[]}catch{return []}}
+function updateAllChapters(preferred=""){
+ const sub=$("allSubjectSelect").value,select=$("allChapterSelect"),chs=[...new Set(allVocabKeys().map(keyInfo).filter(x=>!sub||x.subject===sub).map(x=>x.chapter))].sort();
+ select.replaceChildren(new Option("All chapters",""));chs.forEach(c=>select.add(new Option(c,c)));select.value=chs.includes(preferred)?preferred:"";
+}
+function populateAllSubjects(){const select=$("allSubjectSelect"),old=select.value,subs=[...new Set(allVocabKeys().map(keyInfo).map(x=>x.subject))].sort();select.replaceChildren(new Option("All subjects",""));subs.forEach(x=>select.add(new Option(x,x)));select.value=subs.includes(old)?old:"";updateAllChapters()}
+function selectedAllCards(){
+ const sub=$("allSubjectSelect").value,chapter=$("allChapterSelect").value,filter=$("allReviewFilter").value;
+ let a=allVocabKeys().filter(k=>{const x=keyInfo(k);return (!sub||x.subject===sub)&&(!chapter||x.chapter===chapter)}).flatMap(readCards);
+ if(filter==="due")a=a.filter(isDue);else if(filter==="well"||filter==="some"||filter==="unknown")a=a.filter(w=>reviewData(w).level===filter);
+ return a;
+}
+function renderAllFlash(){
+ const card=$("allFlashcard");card.replaceChildren();if(!allCards.length){card.append(safe("div","No cards match this selection"));$("allFlashCount").textContent="";return}
+ allFlashIndex=Math.max(0,Math.min(allFlashIndex,allCards.length-1));const w=allCards[allFlashIndex],wrap=document.createElement("div");wrap.append(safe("div",allFlashBack?(w.meaning||"Translation not available yet"):w.word));
+ wrap.className="flash-main";card.append(wrap);$("allFlashCount").textContent="Card "+(allFlashIndex+1)+" of "+allCards.length+" · "+w._subject+" / "+w._chapter;
+}
+function startAllReview(){allCards=selectedAllCards();allFlashIndex=0;allFlashBack=false;renderAllFlash();$("allFlashStatus").textContent=allCards.length+" card(s) loaded. Rate each card after revealing its meaning."}
+function rateChapter(level){const list=chapterCards();if(!list.length)return;saveReview({...list[flashIndex],_storageKey:key},level);flashIndex=(flashIndex+1)%Math.max(1,chapterCards().length);flashBack=false;renderFlash()}
+function rateAll(level){if(!allCards.length)return;saveReview(allCards[allFlashIndex],level);allFlashIndex=(allFlashIndex+1)%allCards.length;allFlashBack=false;allCards=selectedAllCards();if(allFlashIndex>=allCards.length)allFlashIndex=0;renderAllFlash()}
+function editDetails(id){
+ const w=words.find(x=>x.id===id);if(!w)return;
+ const word=prompt("English word",w.word||"");if(word===null)return;
+ const meaning=prompt("Vietnamese meaning",w.meaning||"");if(meaning===null)return;
+ w.word=word.trim();w.meaning=meaning.trim();persist();renderWords();renderFlash();
+}
+async function renderPage(n){
+ if(!pageTexts.length && !pdfDoc)return;
+ const total=pdfDoc?pdfDoc.numPages:pageTexts.length;
+ page=Math.max(1,Math.min(n,total));
+ if(sourceKind==="pdf" && pdfDoc){
+  const pdfPage=await pdfDoc.getPage(page);
+  // Fit the original PDF page to the available reading-panel width at normal browser zoom.
+  const baseViewport=pdfPage.getViewport({scale:1});
+  const availableWidth=Math.max(300,($("pdfStage").clientWidth||800)-28);
+  const fitScale=Math.min(1.12,availableWidth/baseViewport.width);
+  const viewport=pdfPage.getViewport({scale:fitScale*zoom});
+  const canvas=$("pdfCanvas"),ctx=canvas.getContext("2d");canvas.width=Math.floor(viewport.width);canvas.height=Math.floor(viewport.height);
+  $("pdfPageLayer").style.width=canvas.width+"px";$("pdfPageLayer").style.height=canvas.height+"px";
+  $("pdfTextLayer").replaceChildren();$("pdfTextLayer").style.width=canvas.width+"px";$("pdfTextLayer").style.height=canvas.height+"px";
+  await pdfPage.render({canvasContext:ctx,viewport}).promise;
+  // Overlay transparent, selectable text positioned over the rendered page. This keeps the page visually intact while enabling normal text selection/copy.
+  const tc=await pdfPage.getTextContent();
+  for(const item of tc.items){
+   if(!item.str || !item.str.trim())continue;
+   const tx=pdfjsLib.Util.transform(viewport.transform,item.transform);
+   const fontHeight=Math.max(1,Math.hypot(tx[2],tx[3]));
+   const span=document.createElement('span');span.textContent=item.str;
+   span.style.left=tx[4]+'px';span.style.top=(tx[5]-fontHeight)+'px';span.style.fontSize=fontHeight+'px';
+   span.style.fontFamily=(tc.styles[item.fontName]&&tc.styles[item.fontName].fontFamily)||'Arial, sans-serif';
+   $("pdfTextLayer").append(span);
+   const naturalWidth=span.getBoundingClientRect().width;
+   const targetWidth=Math.max(1,(item.width||naturalWidth/viewport.scale)*viewport.scale);
+   span.style.transform='scaleX('+(naturalWidth>0?targetWidth/naturalWidth:1)+')';
+  }
+  $("pdfStage").classList.remove("hidden");$("textMaterial").classList.add("hidden");
+  $("sourcePanelTitle").textContent="Reading material — page "+page+" (select/copy text)";
+ }else{
+  $("pdfStage").classList.add("hidden");$("textMaterial").classList.remove("hidden");
+  $("textMaterial").textContent=pageTexts[page-1]||"";
+  $("sourcePanelTitle").textContent="Reading material — page "+page+" (select/copy text)";
+ }
+ $("pageCounter").textContent="Page "+page+" of "+total;
+ $("prevPage").disabled=page===1;$("nextPage").disabled=page===total;
+}
+async function openPdf(){
+ const file=$("pdfFile").files[0];if(!file||busy)return;
+ busy=true;$("readBtn").disabled=true;sourceFileName=file.name;pageTexts=[];
+ try{
+  if(file.name.toLowerCase().endsWith(".pdf")){
+   sourceKind="pdf";originalPdfBytes=await file.arrayBuffer();
+   if(!window.pdfjsLib)throw new Error("PDF reader library could not load. Check internet and refresh.");
+   pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(originalPdfBytes)}).promise;
+   for(let i=1;i<=pdfDoc.numPages;i++){setStatus("Reading page "+i+" of "+pdfDoc.numPages+"…");const p=await pdfDoc.getPage(i),c=await p.getTextContent();pageTexts.push(c.items.map(x=>x.str||"").filter(Boolean).join(" ").replace(/[ \\t]+/g," ").trim())}
+   $("pdfStage")?.classList.remove("hidden");$("textMaterial").classList.add("hidden");
+   $("prevPage").disabled=false;$("nextPage").disabled=false;page=1;renderPage(1);
+  }else if(/\.(txt|md)$/i.test(file.name)){
+   sourceKind="text";const content=await file.text();pageTexts=[content];pdfDoc=null;await renderPage(1);$("sourcePanelTitle").textContent="Reading notes";$("pageCounter").textContent="Notes";$("prevPage").disabled=true;$("nextPage").disabled=true;
+  }else if(/\.pptx$/i.test(file.name)){
+   sourceKind="pptx";
+   if(!window.JSZip)throw new Error("PowerPoint reader library did not load. Check internet and refresh.");
+   const zip=await JSZip.loadAsync(await file.arrayBuffer());
+   const slideNames=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=>parseInt(a.match(/slide(\d+)/)[1])-parseInt(b.match(/slide(\d+)/)[1]));
+   const slides=[];
+   for(let i=0;i<slideNames.length;i++){const xml=await zip.files[slideNames[i]].async("text"),doc=new DOMParser().parseFromString(xml,"application/xml");const parts=[...doc.getElementsByTagNameNS("*","t")].map(n=>n.textContent).filter(Boolean);slides.push("Slide "+(i+1)+"\n"+parts.join(" "));}
+   const content=slides.join("\n\n");pageTexts=[content];pdfDoc=null;sourceKind="text";await renderPage(1);$("sourcePanelTitle").textContent="PowerPoint text";$("pageCounter").textContent=slides.length+" slides extracted";$("prevPage").disabled=true;$("nextPage").disabled=true;
+  }else{throw new Error("Unsupported file type. Choose PDF, TXT, MD, or PPTX.")}
+  $("readerCard").classList.remove("hidden");setStatus("Material opened. Select a word on the left; its English word and Vietnamese meaning appear on the right.");go("readerCard");
+ }catch(e){console.error(e);setStatus(e.message||"Could not read this file. Scanned PDFs may require OCR.")}
+ finally{busy=false;$("readBtn").disabled=!$("pdfFile").files[0]}
+}
+$("pdfFile").addEventListener("change",()=>{$("readBtn").disabled=!$("pdfFile").files[0];setStatus($("pdfFile").files[0]?"Selected: "+$("pdfFile").files[0].name:"Choose a PDF, TXT, or MD file to begin.")});
+$("readBtn").addEventListener("click",openPdf);
+$("showPastedReading").addEventListener("click",()=>{
+ const content=$("pastedReading").value.trim();
+ if(!content){setStatus("Paste or type some reading text first.");return;}
+ sourceKind="text";sourceFileName="Pasted reading";pdfDoc=null;pageTexts=[content];
+ renderPage(1);
+ $("sourcePanelTitle").textContent="Reading text — select and copy normally";
+ $("pageCounter").textContent="Pasted text";$("prevPage").disabled=true;$("nextPage").disabled=true;
+ $("readerCard").classList.remove("hidden");
+ setStatus("Reading text opened. Select a word to show its English and Vietnamese meaning on the right.");go("readerCard");
+});
+async function changePageAndJump(n){await renderPage(n);const target=$("sourcePanelTitle");if(target){target.scrollIntoView({behavior:"smooth",block:"start"});setTimeout(()=>window.scrollBy({top:-90,behavior:"smooth"}),80)}}
+$("prevPage").addEventListener("click",()=>changePageAndJump(page-1));$("nextPage").addEventListener("click",()=>changePageAndJump(page+1));
+$("saveReadingPdfBtn").addEventListener("click",async()=>{
+ if($('readerCard').classList.contains('hidden'))return;
+ const suggested=(sourceFileName||context().chapter||"Study reading").replace(/\.pdf$/i,"").replace(/[\/:*?"<>|]/g,"-").trim()||"Study reading";
+ const name=prompt("Name this PDF file:",suggested);if(name===null)return;
+ const filename=(name.trim()||suggested)+".pdf";
+ if(sourceKind==="pdf"&&originalPdfBytes){
+  try{
+   if(window.showSaveFilePicker){
+    const handle=await window.showSaveFilePicker({suggestedName:filename,types:[{description:"PDF document",accept:{"application/pdf":[".pdf"]}}]});
+    const writable=await handle.createWritable();await writable.write(originalPdfBytes);await writable.close();
+    setStatus("PDF saved. You chose the file name and folder.");
+   }else{
+    const url=URL.createObjectURL(new Blob([originalPdfBytes],{type:"application/pdf"})),a=document.createElement("a");a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+    setStatus("Original PDF downloaded. Choose its folder in your browser download settings.");
+   }
+  }catch(err){if(err&&err.name!=="AbortError")setStatus("Could not save PDF: "+err.message)}
+  return;
+ }
+ const oldTitle=document.title;document.title=filename.replace(/\.pdf$/i,"");
+ document.body.classList.add("print-reading");
+ const restore=()=>{document.body.classList.remove("print-reading");document.title=oldTitle;window.removeEventListener("afterprint",restore)};
+ window.addEventListener("afterprint",restore);window.print();setTimeout(restore,1500);
+});
+// Preserve native text selection/copy and send the selected word to the dictionary panel.
+function handleReadingSelection(){
+ const selection=window.getSelection();
+ if(!selection || !selection.toString().trim()) return;
+ const raw=selection.toString().trim();
+ const word=(raw.match(/[A-Za-z][A-Za-z'-]*/) || [])[0];
+ if(word) showSelectedWord(word);
+}
+$("textMaterial").addEventListener("mouseup",handleReadingSelection);
+$("pdfTextLayer").addEventListener("mouseup",handleReadingSelection);
+$("pdfTextLayer").addEventListener("keyup",e=>{if(e.key==="Shift"||e.key==="ArrowLeft"||e.key==="ArrowRight")handleReadingSelection();});
+// Local subject glossary provides an instant fallback; selected words are also translated online.
+const subjectGlossaries = {
+  biology: {
+    "cell":"tế bào","tissue":"mô","organ":"cơ quan","organ system":"hệ cơ quan",
+    "atom":"nguyên tử","molecule":"phân tử","substance":"chất","element":"nguyên tố",
+    "proton":"proton","neutron":"neutron","electron":"electron","nucleus":"hạt nhân",
+    "membrane":"màng","cell membrane":"màng tế bào","cytoplasm":"tế bào chất",
+    "mitochondrion":"ty thể","mitochondria":"ty thể","ribosome":"ribosome",
+    "DNA":"DNA","RNA":"RNA","gene":"gen","chromosome":"nhiễm sắc thể",
+    "protein":"protein","carbohydrate":"carbohydrate","lipid":"lipid","enzyme":"enzyme",
+    "diffusion":"sự khuếch tán","osmosis":"sự thẩm thấu","homeostasis":"sự cân bằng nội môi",
+    "metabolism":"sự trao đổi chất","organism":"sinh vật","species":"loài",
+    "skeletal system":"hệ xương","muscular system":"hệ cơ","nervous system":"hệ thần kinh",
+    "cardiovascular system":"hệ tim mạch","respiratory system":"hệ hô hấp",
+    "digestive system":"hệ tiêu hóa","urinary system":"hệ tiết niệu",
+    "immune system":"hệ miễn dịch","inflammation":"viêm","infection":"nhiễm trùng"
+  },
+  "medical terminology": {
+    "cardio":"tim","neuro":"thần kinh","derm":"da","gastr":"dạ dày","hepat":"gan",
+    "nephro":"thận","osteo":"xương","myo":"cơ","pulmon":"phổi","hemato":"máu",
+    "-itis":"viêm","-algia":"đau","-ectomy":"phẫu thuật cắt bỏ","-ology":"ngành nghiên cứu",
+    "hypo-":"thiếu / thấp","hyper-":"quá mức / cao","tachy-":"nhanh","brady-":"chậm",
+    "diagnosis":"chẩn đoán","prognosis":"tiên lượng","symptom":"triệu chứng",
+    "treatment":"điều trị","inflammation":"viêm","infection":"nhiễm trùng"
+  },
+  "medical assisting": {
+    "vital signs":"dấu hiệu sinh tồn","blood pressure":"huyết áp","pulse":"mạch",
+    "respiration":"nhịp thở","temperature":"nhiệt độ","chief complaint":"lý do khám chính",
+    "medical history":"tiền sử bệnh","copay":"khoản đồng chi trả","insurance card":"thẻ bảo hiểm",
+    "appointment":"cuộc hẹn","refill":"cấp lại thuốc","medication":"thuốc",
+    "patient":"bệnh nhân","provider":"nhà cung cấp dịch vụ y tế","intake":"tiếp nhận bệnh nhân",
+    "sterile":"vô trùng","specimen":"mẫu bệnh phẩm","consent":"sự đồng ý"
+  },
+  "ged science": {
+    "matter":"vật chất","energy":"năng lượng","force":"lực","motion":"chuyển động",
+    "gravity":"trọng lực","climate":"khí hậu","weather":"thời tiết","genetics":"di truyền học",
+    "cell":"tế bào","organism":"sinh vật","hypothesis":"giả thuyết","experiment":"thí nghiệm",
+    "variable":"biến số","data":"dữ liệu","evidence":"bằng chứng"
+  }
+};
+function lookupLocalGlossary(raw){
+  const word=(raw||"").trim().replace(/^[^A-Za-z-]+|[^A-Za-z'-]+$/g,"");
+  if(!word)return "";
+  const subject=($("subject").value||"").trim().toLowerCase();
+  for(const group of Object.keys(subjectGlossaries)){
+    const glossary=subjectGlossaries[group];
+    const subjectMatches=subject.includes(group) || (group==="biology" && /human biology|anatomy/.test(subject));
+    if(subjectMatches && glossary[word.toLowerCase()]) return glossary[word.toLowerCase()];
+  }
+  for(const glossary of Object.values(subjectGlossaries)){
+    const match=Object.keys(glossary).find(k=>k.toLowerCase()===word.toLowerCase());
+    if(match) return glossary[match];
+  }
+  return "";
+}
+let translationRequestId = 0;
+async function translateEnglishToVietnamese(word, requestId){
+  const clean=(word||"").trim();
+  if(!clean || !/^[A-Za-z][A-Za-z'-]*$/.test(clean)) return;
+  $("entryStatus").textContent="Translating online…";
+  try{
+    const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(clean)+"&langpair=en|vi";
+    const response=await fetch(url,{method:"GET"});
+    if(!response.ok) throw new Error("Translation service returned "+response.status);
+    const data=await response.json();
+    const translated=(data && data.responseData && data.responseData.translatedText || "").trim();
+    if(requestId!==translationRequestId || $("selectedEnglish").value.trim().toLowerCase()!==clean.toLowerCase()) return;
+    if(translated && !/^MYMEMORY WARNING/i.test(translated)){
+      $("selectedVietnamese").value=translated;
+      $("entryMeaning").value=translated;
+      $("entryStatus").textContent="Translated online. Check the meaning before saving.";
+    }else{
+      $("entryStatus").textContent="No translation was returned. Enter the Vietnamese meaning manually.";
+    }
+  }catch(error){
+    if(requestId!==translationRequestId) return;
+    $("entryStatus").textContent="Online translation failed. Check your Internet connection or enter the meaning manually.";
+  }
+}
+function showSelectedWord(raw){
+  const word=(raw||"").trim().replace(/^[^A-Za-z]+|[^A-Za-z'-]+$/g,"").split(/\s+/)[0];
+  if(!word)return;
+  const requestId=++translationRequestId;
+  $("selectedEnglish").value=word;$("selectedEnglish").title=word;$("entryWord").value=word;
+  const meaning=lookupLocalGlossary(word);
+  $("selectedVietnamese").value=meaning;$("entryMeaning").value=meaning;
+  translateEnglishToVietnamese(word,requestId);
+}
+$("selectedVietnamese").addEventListener("input",()=>{$("entryMeaning").value=$("selectedVietnamese").value;});
+function handleTextSelection(){
+ const sel=window.getSelection();if(!sel||!sel.toString().trim())return;
+ const anchor=sel.anchorNode,focus=sel.focusNode;
+ const inPdf=[anchor,focus].some(n=>n&&($("pdfTextLayer").contains(n.nodeType===1?n:n.parentElement)));
+ const inText=[anchor,focus].some(n=>n&&($("textMaterial").contains(n.nodeType===1?n:n.parentElement)));
+ if(!inPdf&&!inText)return;
+ const chosen=sel.toString().trim();const tokens=chosen.match(/[A-Za-z][A-Za-z’'-]*/g)||[];if(!tokens.length)return;showSelectedWord(tokens.length===1?tokens[0]:tokens[tokens.length-1]);
+}
+document.addEventListener("mouseup",handleTextSelection);
+document.addEventListener("keyup",e=>{if(["Shift","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Control","Meta"].includes(e.key))handleTextSelection()});
+
+const autoPosLexicon = {
+  "reproductive":"adj","reproduction":"n","reproduce":"v",
+  "healthy":"adj","health":"n","develop":"v","development":"n",
+  "cell":"n","tissue":"n","organ":"n","system":"n","atom":"n","molecule":"n",
+  "substance":"n","element":"n","proton":"n","neutron":"n","electron":"n",
+  "nucleus":"n","membrane":"n","cytoplasm":"n","mitochondrion":"n","mitochondria":"n",
+  "ribosome":"n","gene":"n","chromosome":"n","protein":"n","carbohydrate":"n",
+  "lipid":"n","enzyme":"n","diffusion":"n","osmosis":"n","homeostasis":"n",
+  "metabolism":"n","organism":"n","species":"n","inflammation":"n","infection":"n",
+  "medical":"adj","clinical":"adj","patient":"n","diagnosis":"n","prognosis":"n",
+  "symptom":"n","treatment":"n","medication":"n","pressure":"n","respiration":"n",
+  "temperature":"n","appointment":"n","sterile":"adj","specimen":"n",
+  "matter":"n","energy":"n","force":"n","motion":"n","gravity":"n",
+  "weather":"n","climate":"n","genetics":"n","hypothesis":"n","experiment":"n",
+  "variable":"n","data":"n","evidence":"n"
+};
+function inferPartOfSpeech(word){
+ const clean=String(word||"").trim().toLowerCase().replace(/^[^a-z]+|[^a-z-]+$/g,"");
+ if(!clean)return "";
+ if(autoPosLexicon[clean])return autoPosLexicon[clean];
+ if(/(ization|isation|ment|ness|ity|tion|sion|ance|ence|ship|ism|ist|ure)$/.test(clean))return "n";
+ if(/(ous|ful|less|able|ible|al|ive|ic|ary|ory|ant|ent)$/.test(clean))return "adj";
+ if(/(ate|ify|ise|ize)$/.test(clean))return "v";
+ if(/ly$/.test(clean))return "adv";
+ return "";
+}
+
+$("wordEntryForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const word=$("selectedEnglish").value.trim() || $("entryWord").value.trim();
+ const meaning=$("selectedVietnamese").value.trim() || $("entryMeaning").value.trim();
+ const pos=inferPartOfSpeech(word);
+ if(!word){
+   $("entryStatus").textContent="Please select or type an English word first.";
+   $("selectedEnglish").focus();
+   return;
+ }
+ if(!meaning){
+   $("entryStatus").textContent="Please wait for the translation or type the Vietnamese meaning before saving.";
+   $("selectedVietnamese").focus();
+   return;
+ }
+
+ // Ensure we are saving into the current subject/chapter vocabulary list.
+ const storageKey=makeKey();
+ key=storageKey;
+ let existing=words.find(w=>String(w.word||"").trim().toLocaleLowerCase()===word.toLocaleLowerCase());
+ if(existing){
+   existing.meaning=meaning;
+   if(pos) existing.pos=pos;
+ }else{
+   words.push({
+     id:"word-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8),
+     word:word,
+     meaning:meaning,
+     pos:pos,
+     ipa:"",
+     connection:"",
+     forms:"",
+     synonyms:""
+   });
+ }
+
+ // Render immediately so the new word appears in Chapter vocabulary without navigating away.
+ renderWords();
+ renderFlash();
+ populateAllSubjects();
+
+ let saved=false;
+ try{
+   localStorage.setItem(storageKey,JSON.stringify(words));
+   const check=JSON.parse(localStorage.getItem(storageKey)||"null");
+   saved=Array.isArray(check) && check.some(w=>String(w.word||"").trim().toLocaleLowerCase()===word.toLocaleLowerCase());
+ }catch(err){
+   console.error("Could not save Chapter vocabulary",err);
+ }
+ if(saved){
+   $("entryStatus").textContent="Saved “"+word+"” to Chapter vocabulary below.";
+   $("vocabStatus").textContent=words.length+" word(s) saved in Chapter vocabulary for "+context().chapter+".";
+   $("selectedEnglish").value="";
+   $("selectedVietnamese").value="";
+   
+   $("entryWord").value="";
+   $("entryMeaning").value="";
+ }else{
+   $("entryStatus").textContent="The word appeared temporarily, but browser storage could not save it. Export a JSON backup and check browser storage settings.";
+   $("vocabStatus").textContent="Save failed: the browser did not confirm the word in Chapter vocabulary.";
+ }
+});
+$("clearEntryBtn").addEventListener("click",()=>{$("wordEntryForm").reset();$("selectedEnglish").value="";$("selectedVietnamese").value="";$("entryStatus").textContent="Fields cleared."});
+$("saveContextBtn").addEventListener("click",()=>{startFreshChapter();go("uploadCard")});
+// Do not load old words automatically on page load or when changing subjects. Open an old chapter explicitly.
+$("subject").addEventListener("change",()=>{loadWords();populateAllSubjects();});$("chapter").addEventListener("change",()=>{loadWords();populateAllSubjects();});
+const DB_NAME="StudyWorkspaceChaptersDB", DB_STORE="chapters";
+function openChapterDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(DB_STORE))req.result.createObjectStore(DB_STORE,{keyPath:"id"})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function putSavedChapter(record){const db=await openChapterDB();return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,"readwrite");tx.objectStore(DB_STORE).put(record);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
+async function getSavedChapters(){const db=await openChapterDB();return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,"readonly"),req=tx.objectStore(DB_STORE).getAll();req.onsuccess=()=>{db.close();resolve(req.result||[])};req.onerror=()=>{db.close();reject(req.error)}})}
+$("saveChapterBtn").addEventListener("click",async()=>{const c=context();const defaultName=(c.subject+" - "+c.chapter).trim();const title=prompt("Name this saved chapter:",defaultName);if(title===null||!title.trim())return;try{await putSavedChapter({id:title.trim(),title:title.trim(),subject:c.subject,chapter:c.chapter,sourceKind,sourceFileName, pdfBytes:originalPdfBytes?Array.from(new Uint8Array(originalPdfBytes)):null, textContent:sourceKind==="text"?(pageTexts.join("\n\n")):null, words:JSON.parse(JSON.stringify(words)),savedAt:Date.now()});setStatus('Saved chapter "'+title.trim()+'" with its PDF/material and vocabulary on this device.');}catch(e){console.error(e);setStatus("Could not save chapter in this browser. Try a smaller PDF or export vocabulary as CSV.")}});
+$("openChapterBtn").addEventListener("click",async()=>{try{const saved=await getSavedChapters();if(!saved.length){alert("No saved chapters yet. Use Save chapter (PDF + words) first.");return}const choices=saved.map((x,i)=>`${i+1}. ${x.title}`).join("\n");const answer=prompt("Enter the number of the chapter to open:\n\n"+choices,"1");if(answer===null)return;const record=saved[Number(answer)-1];if(!record){alert("Please enter a valid number.");return}startFreshChapter();$("subject").value=record.subject||"General";$("chapter").value=record.chapter||record.title;words=Array.isArray(record.words)?record.words:[];key=makeKey();persist();renderWords();renderFlash();sourceFileName=record.sourceFileName||record.title;page=1;pageTexts=[];originalPdfBytes=null;pdfDoc=null;if(record.pdfBytes){originalPdfBytes=new Uint8Array(record.pdfBytes).buffer;if(!window.pdfjsLib)throw new Error("PDF reader library unavailable; check internet and retry.");pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(originalPdfBytes)}).promise;sourceKind="pdf";for(let i=1;i<=pdfDoc.numPages;i++){const pg=await pdfDoc.getPage(i),tc=await pg.getTextContent();pageTexts.push(tc.items.map(x=>x.str||"").filter(Boolean).join(" "))}await renderPage(1);$("sourcePanelTitle").textContent="Original PDF — "+record.title;$("pdfStage").classList.remove("hidden");$("textMaterial").classList.add("hidden");$("prevPage").disabled=false;$("nextPage").disabled=pdfDoc.numPages<=1;}else if(record.textContent){sourceKind="text";pageTexts=[record.textContent];await renderPage(1);$("sourcePanelTitle").textContent=record.title;$("prevPage").disabled=true;$("nextPage").disabled=true;}$("readerCard").classList.remove("hidden");setStatus('Opened saved chapter "'+record.title+'".');go("readerCard");}catch(e){console.error(e);setStatus("Could not open saved chapter: "+e.message)}});
+$("compileBtn").addEventListener("click",()=>{renderWords();$("vocabStatus").textContent="Chapter vocabulary refreshed. No saved words were deleted."});
+$("exportBtn").addEventListener("click",()=>{
+ if(!words.length){alert("No words to export yet.");return}
+ const rows=[["English","Vietnamese"],...words.map(w=>[w.word,w.meaning])];
+ const csv="\uFEFF"+rows.map(r=>r.map(escapeCsv).join(",")).join("\r\n"),url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");
+ a.href=url;a.download="chapter-vocabulary.csv";a.click();URL.revokeObjectURL(url)
+});
+$("printBtn").addEventListener("click",()=>window.print());
+function downloadBlob(filename, content, type){
+  const url=URL.createObjectURL(new Blob([content],{type}));
+  const a=document.createElement("a");a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$("exportJsonBtn").addEventListener("click",()=>{
+  const review={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k && k.startsWith("study-review-v1:")) review[k]=localStorage.getItem(k);
+  }
+  const payload={format:"study-workspace-backup-v1",subject:context().subject,chapter:context().chapter,
+    sourceFileName,words,review,exportedAt:new Date().toISOString()};
+  const safeName=(context().subject+"_"+context().chapter).replace(/[^a-z0-9_-]+/gi,"_");
+  downloadBlob(safeName+"_study_backup.json",JSON.stringify(payload,null,2),"application/json");
+  $("vocabStatus").textContent="Study backup downloaded, including words and review progress.";
+});
+$("importJsonBtn").addEventListener("click",()=>$("importJsonFile").click());
+$("importJsonFile").addEventListener("change",async()=>{
+  const file=$("importJsonFile").files[0];if(!file)return;
+  try{
+    const payload=JSON.parse(await file.text());
+    if(payload.format!=="study-workspace-backup-v1" || !Array.isArray(payload.words)) throw new Error("This is not a compatible study backup.");
+    const replace=confirm("Press OK to replace this chapter's word list. Press Cancel to merge imported words into the current list.");
+    if(replace) words=payload.words.filter(w=>w&&w.word);
+    else{
+      const map=new Map(words.map(w=>[(w.word||"").toLowerCase(),w]));
+      payload.words.forEach(w=>{if(w&&w.word){const k=w.word.toLowerCase();if(map.has(k))map.get(k).meaning=w.meaning;else map.set(k,w)}});
+      words=[...map.values()];
+    }
+    if(payload.review && typeof payload.review==="object"){
+      Object.entries(payload.review).forEach(([k,v])=>{if(k.startsWith("study-review-v1:")&&typeof v==="string")localStorage.setItem(k,v)});
+    }
+    persist();renderWords();renderFlash();populateAllSubjects();
+    $("vocabStatus").textContent="Imported "+payload.words.length+" word(s) from the study backup.";
+  }catch(e){alert("Could not import study backup: "+e.message)}
+  finally{$("importJsonFile").value="";}
+});
+
+$("clearWordsBtn").addEventListener("click",()=>{if(confirm("Permanently remove all saved words for this chapter? Export a backup first if needed.")){words=[];persist();renderWords();renderFlash()}});
+$("flipFlash").addEventListener("click",()=>{flashBack=!flashBack;renderFlash()});
+$("flashcard").addEventListener("click",()=>{flashBack=!flashBack;renderFlash()});
+$("flashcard").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flashBack=!flashBack;renderFlash()}});
+$("prevFlash").addEventListener("click",()=>{if(words.length){flashIndex=(flashIndex-1+words.length)%words.length;flashBack=false;renderFlash()}});
+$("nextFlash").addEventListener("click",()=>{if(words.length){flashIndex=(flashIndex+1)%words.length;flashBack=false;renderFlash()}});
+$("shuffleFlash").addEventListener("click",()=>{if(words.length){flashIndex=Math.floor(Math.random()*words.length);flashBack=false;renderFlash()}});
+$("fontUp").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.min(2.2,zoom+0.15);renderPage(page)}else{fontSize=Math.min(30,fontSize+2);$("textMaterial").style.fontSize=fontSize+"px"}});
+$("fontDown").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.max(0.6,zoom-0.15);renderPage(page)}else{fontSize=Math.max(14,fontSize-2);$("textMaterial").style.fontSize=fontSize+"px"}});
+$("fontReset").addEventListener("click",()=>{zoom=1;fontSize=18;if(pdfDoc&&sourceKind==="pdf")renderPage(page);$("textMaterial").style.fontSize=fontSize+"px"});
+$("knowWellBtn").addEventListener("click",()=>rateChapter("well"));
+$("knowSomeBtn").addEventListener("click",()=>rateChapter("some"));
+$("dontKnowBtn").addEventListener("click",()=>rateChapter("unknown"));
+$("harderBtn").addEventListener("click",()=>rateChapter("harder"));
+$("reviewDueBtn").addEventListener("click",()=>{chapterReviewMode="due";flashIndex=0;flashBack=false;renderFlash()});
+$("reviewAllChapterBtn").addEventListener("click",()=>{chapterReviewMode="all";flashIndex=0;flashBack=false;renderFlash()});
+$("allSubjectSelect").addEventListener("change",()=>{updateAllChapters();startAllReview()});
+$("allChapterSelect").addEventListener("change",startAllReview);
+$("allReviewFilter").addEventListener("change",startAllReview);
+$("refreshAllFlash").addEventListener("click",()=>{populateAllSubjects();startAllReview()});
+$("startAllReview").addEventListener("click",startAllReview);
+$("shuffleAllFlash").addEventListener("click",()=>{if(allCards.length){allFlashIndex=Math.floor(Math.random()*allCards.length);allFlashBack=false;renderAllFlash()}});
+$("allPrevFlash").addEventListener("click",()=>{if(allCards.length){allFlashIndex=(allFlashIndex-1+allCards.length)%allCards.length;allFlashBack=false;renderAllFlash()}});
+$("allNextFlash").addEventListener("click",()=>{if(allCards.length){allFlashIndex=(allFlashIndex+1)%allCards.length;allFlashBack=false;renderAllFlash()}});
+$("allFlipFlash").addEventListener("click",()=>{allFlashBack=!allFlashBack;renderAllFlash()});
+$("allFlashcard").addEventListener("click",()=>{allFlashBack=!allFlashBack;renderAllFlash()});
+$("allFlashcard").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();allFlashBack=!allFlashBack;renderAllFlash()}});
+$("allKnowWellBtn").addEventListener("click",()=>rateAll("well"));
+$("allKnowSomeBtn").addEventListener("click",()=>rateAll("some"));
+$("allDontKnowBtn").addEventListener("click",()=>rateAll("unknown"));
+// Start with a clean reading workspace each time. Saved vocabulary remains stored by subject/chapter.
+ $("readerCard").classList.add("hidden");$("pdfFile").value="";$("pastedReading").value="";$("selectedEnglish").value="";$("selectedVietnamese").value="";$("entryWord").value="";$("entryMeaning").value="";
+ populateAllSubjects();
+ startFreshChapter();startAllReview();
+})();
+</script>
+</body>
+</html>
