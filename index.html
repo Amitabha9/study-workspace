@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
 <title>Study Workspace — Simple Reader</title>
 <style>
 :root{--green:#175c49;--pale:#e8f3ed;--border:#d8e1dc;--text:#24332d;--muted:#65756d}
@@ -48,7 +48,7 @@ main{padding:8px}.card{padding:12px;margin-bottom:10px}body{font-size:17px;line-
 header{padding:14px 12px}header h1{font-size:24px}h2{font-size:20px}
 .pdf-stage{padding:4px;max-height:62vh;overflow:auto;touch-action:pan-x pan-y}
 .pdf-page-wrap{justify-content:flex-start}.panel-body{padding:12px}
-.toolbar{gap:8px}.toolbar button{flex:1 1 135px;padding:10px 12px}
+.toolbar{gap:8px}.toolbar button{flex:1 1 135px;padding:10px 12px}.save-toolbar{position:sticky;bottom:0;background:#fff;padding:8px 0;z-index:3}.save-toolbar #saveWordBtn{min-height:54px;font-size:19px;flex:1 1 100%;box-shadow:0 2px 8px #0002}.dictionary-panel{overflow:visible}.pdf-page-wrap{touch-action:pan-x pan-y pinch-zoom}.pdf-stage{touch-action:pan-x pan-y pinch-zoom}
 #selectedEnglish,#selectedVietnamese{font-size:18px}
 .text-material{font-size:20px!important;line-height:1.9;padding:14px;max-height:62vh}
 th,td{padding:8px;min-width:120px}
@@ -73,16 +73,16 @@ th,td{padding:8px;min-width:120px}
 </div>
 <div style="margin-top:12px"><label for="pdfFile">Optional: PDF, notes (.txt/.md), or PowerPoint (.pptx)</label><input id="pdfFile" type="file" accept=".pdf,application/pdf,.txt,.md,.pptx"></div>
 
-<div class="toolbar"><button id="readBtn" class="primary" disabled>Open study material</button><button id="saveContextBtn">Select chapter</button></div>
+<div class="toolbar"><button id="readBtn" class="primary" disabled>Open study material</button></div>
 <div id="status" class="status" role="status">Choose a PDF, text file, or PowerPoint file to begin.</div>
-<p class="muted">On a phone, tap and hold a word to select it. The selected English word and Vietnamese meaning will appear below the reading.</p>
+<p class="muted">Choose a file and open it. Select a word in the reading area; the dictionary appears below on phones. Use A− and A+ to resize the reading.</p>
 </section>
 
 <section id="readerCard" class="hidden">
 <div class="card">
 <h2>Reading</h2>
 <div class="toolbar no-print">
-<button id="prevPage">Previous page</button><span id="pageCounter">Page —</span><button id="nextPage">Next page</button><button id="saveReadingPdfBtn" class="primary">Save this reading as PDF</button>
+<button id="prevPage">Previous page</button><span id="pageCounter">Page —</span><button id="nextPage">Next page</button><button id="zoomOutBtn" type="button">Zoom −</button><button id="zoomInBtn" type="button">Zoom +</button><button id="saveReadingPdfBtn" class="primary">Save this reading as PDF</button>
 
 </div>
 <div class="workspace">
@@ -94,13 +94,13 @@ th,td{padding:8px;min-width:120px}
 <aside class="dictionary-panel panel" id="dictionaryPanel">
 <div class="panel-title">Word meaning &amp; add to vocabulary</div>
 <div class="panel-body">
-<p class="muted">Select a word on the left or type it below. Enter its Vietnamese meaning, then click Save word.</p>
+<p class="muted">Select a word in the reading or type it below. Check or edit the Vietnamese meaning, then tap Save word once.</p>
 <label for="selectedEnglish">1. English word</label><input id="selectedEnglish" placeholder="Type an English word" autocomplete="off">
 <label for="selectedVietnamese" style="margin-top:10px">2. Vietnamese meaning</label><textarea id="selectedVietnamese" rows="3" placeholder="Meaning will appear here when available, or type it yourself" aria-live="polite"></textarea>
 <form id="wordEntryForm" style="margin-top:14px">
 <input id="entryWord" type="hidden" required>
 <textarea id="entryMeaning" hidden required></textarea>
-<div class="toolbar"><button type="submit" class="primary">4. Save word</button><button type="button" id="clearEntryBtn">5. Clear fields</button></div>
+<div class="toolbar save-toolbar"><button type="submit" id="saveWordBtn" class="primary">Save word</button><button type="button" id="clearEntryBtn">Clear fields</button></div>
 <div id="entryStatus" class="status" role="status">Your word will be saved under the selected subject and chapter.</div>
 </form>
 </div>
@@ -282,7 +282,7 @@ async function openPdf(){
    for(let i=0;i<slideNames.length;i++){const xml=await zip.files[slideNames[i]].async("text"),doc=new DOMParser().parseFromString(xml,"application/xml");const parts=[...doc.getElementsByTagNameNS("*","t")].map(n=>n.textContent).filter(Boolean);slides.push("Slide "+(i+1)+"\n"+parts.join(" "));}
    const content=slides.join("\n\n");pageTexts=[content];pdfDoc=null;sourceKind="text";await renderPage(1);$("sourcePanelTitle").textContent="PowerPoint text";$("pageCounter").textContent=slides.length+" slides extracted";$("prevPage").disabled=true;$("nextPage").disabled=true;
   }else{throw new Error("Unsupported file type. Choose PDF, TXT, MD, or PPTX.")}
-  $("readerCard").classList.remove("hidden");setStatus("Material opened. Select a word on the left; its English word and Vietnamese meaning appear on the right.");go("readerCard");
+  $("readerCard").classList.remove("hidden");setStatus("Reading opened. Select a word to look up its Vietnamese meaning, then save it in the dictionary below.");go("readerCard");
  }catch(e){console.error(e);setStatus(e.message||"Could not read this file. Scanned PDFs may require OCR.")}
  finally{busy=false;$("readBtn").disabled=!$("pdfFile").files[0]}
 }
@@ -296,7 +296,7 @@ if($("showPastedReading"))$("showPastedReading").addEventListener("click",()=>{
  $("sourcePanelTitle").textContent="Reading text — select and copy normally";
  $("pageCounter").textContent="Pasted text";$("prevPage").disabled=true;$("nextPage").disabled=true;
  $("readerCard").classList.remove("hidden");
- setStatus("Reading text opened. Select a word to show its English and Vietnamese meaning on the right.");go("readerCard");
+ setStatus("Reading opened. Select a word to look up its Vietnamese meaning, then save it in the dictionary below.");go("readerCard");
 });
 $("prevPage").addEventListener("click",()=>renderPage(page-1));$("nextPage").addEventListener("click",()=>renderPage(page+1));window.addEventListener("resize",()=>{if(pdfDoc&&sourceKind==="pdf"&&!busy)renderPage(page)});
 $("saveReadingPdfBtn").addEventListener("click",async()=>{
@@ -361,27 +361,30 @@ function handleTextSelection(){
  const chosen=sel.toString().trim();if(chosen.split(/\s+/).length>1){const last=chosen.split(/\s+/).filter(Boolean).pop();showSelectedWord(last)}else showSelectedWord(chosen);
 }
 document.addEventListener("mouseup",handleTextSelection);
-document.addEventListener("touchend",()=>setTimeout(handleTextSelection,80),{passive:true});
+document.addEventListener("touchend",handleTextSelection,{passive:true});
+document.addEventListener("touchend",()=>setTimeout(handleTextSelection,180),{passive:true});
 document.addEventListener("selectionchange",()=>{clearTimeout(window.__studySelectionTimer);window.__studySelectionTimer=setTimeout(handleTextSelection,120)});
 document.addEventListener("keyup",e=>{if(["Shift","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Control","Meta"].includes(e.key))handleTextSelection()});
 $("wordEntryForm").addEventListener("submit",async e=>{
  e.preventDefault();if(savingWord)return;savingWord=true;
  const saveButton=$("wordEntryForm").querySelector('button[type="submit"]');if(saveButton)saveButton.disabled=true;
  try{
-  await translationPromise;
   const word=$("selectedEnglish").value.trim()||$("entryWord").value.trim();
   const meaning=$("selectedVietnamese").value.trim()||$("entryMeaning").value.trim();
-  if(!word||!meaning){$("entryStatus").textContent=!word?"Select or type an English word first.":"Enter the Vietnamese meaning, then tap Save word once.";return;}
+  if(!word){$("entryStatus").textContent="Select or type an English word first.";return;}
+  if(!meaning){$("entryStatus").textContent="Looking up Vietnamese meaning…";await translationPromise; }
+  const finalMeaning=$("selectedVietnamese").value.trim()||$("entryMeaning").value.trim();
+  if(!finalMeaning){$("entryStatus").textContent="Translation unavailable. Type the Vietnamese meaning, then tap Save word.";return;}
   const existing=words.find(w=>w.word.toLowerCase()===word.toLowerCase());
-  if(existing){existing.meaning=meaning;persist();renderWords();renderFlash();$("entryStatus").textContent='Updated “'+word+'” and saved it.';}
-  else{words.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),word,meaning,pos:"",ipa:"",connection:"",forms:"",synonyms:""});persist();renderWords();renderFlash();$("entryStatus").textContent='Saved “'+word+'” to this device.';}
+  if(existing){existing.meaning=finalMeaning;persist();renderWords();renderFlash();$("entryStatus").textContent='Updated “'+word+'” and saved it.';}
+  else{words.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),word,meaning:finalMeaning,pos:"",ipa:"",connection:"",forms:"",synonyms:""});persist();renderWords();renderFlash();$("entryStatus").textContent='Saved “'+word+'” to this device.';}
   populateAllSubjects();
   $("entryWord").value="";$("entryMeaning").value="";
-  $("selectedEnglish").value=word;$("selectedVietnamese").value=meaning;
+  $("selectedEnglish").value=word;$("selectedVietnamese").value=finalMeaning;
  } finally {savingWord=false;if(saveButton)saveButton.disabled=false;}
 });
 $("clearEntryBtn").addEventListener("click",()=>{$("wordEntryForm").reset();$("selectedEnglish").value="";$("selectedVietnamese").value="";$("entryStatus").textContent="Fields cleared."});
-$("saveContextBtn").addEventListener("click",()=>{loadWords();$("chapterInfo")?.remove();setStatus("Chapter selected. Saved words are kept on this device.")});
+
 $("chapter").addEventListener("change",loadWords);
 $("compileBtn").addEventListener("click",()=>{renderWords();$("vocabStatus").textContent="Chapter vocabulary refreshed. No saved words were deleted."});
 $("exportBtn").addEventListener("click",()=>{
@@ -398,6 +401,8 @@ $("flashcard").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e
 $("prevFlash").addEventListener("click",()=>{if(words.length){flashIndex=(flashIndex-1+words.length)%words.length;flashBack=false;renderFlash()}});
 $("nextFlash").addEventListener("click",()=>{if(words.length){flashIndex=(flashIndex+1)%words.length;flashBack=false;renderFlash()}});
 $("shuffleFlash").addEventListener("click",()=>{if(words.length){flashIndex=Math.floor(Math.random()*words.length);flashBack=false;renderFlash()}});
+$("zoomInBtn").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.min(3,zoom+0.25);renderPage(page)}else{fontSize=Math.min(36,fontSize+2);$("textMaterial").style.fontSize=fontSize+"px"}});
+$("zoomOutBtn").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.max(0.5,zoom-0.25);renderPage(page)}else{fontSize=Math.max(14,fontSize-2);$("textMaterial").style.fontSize=fontSize+"px"}});
 $("fontUp").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.min(2.2,zoom+0.15);renderPage(page)}else{fontSize=Math.min(30,fontSize+2);$("textMaterial").style.fontSize=fontSize+"px"}});
 $("fontDown").addEventListener("click",()=>{if(pdfDoc&&sourceKind==="pdf"){zoom=Math.max(0.6,zoom-0.15);renderPage(page)}else{fontSize=Math.max(14,fontSize-2);$("textMaterial").style.fontSize=fontSize+"px"}});
 $("fontReset").addEventListener("click",()=>{zoom=1;fontSize=18;if(pdfDoc&&sourceKind==="pdf")renderPage(page);$("textMaterial").style.fontSize=fontSize+"px"});
