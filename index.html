@@ -11,7 +11,7 @@ body{margin:0;background:#f3f6f4;color:var(--text);font:18px/1.65 Arial,sans-ser
 header{background:#173b32;color:#fff;padding:22px max(18px,calc((100% - 1450px)/2))}
 header h1{font-size:28px;margin:0}header p{margin:4px 0 0;color:#dcebe4}
 nav{position:sticky;top:0;z-index:4;background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap}
-main{max-width:1450px;margin:auto;padding:18px}
+main{max-width:1600px;margin:auto;padding:18px}
 button,input,select,textarea{font:inherit}button{min-height:44px;touch-action:manipulation}input,select,textarea{font-size:16px;min-height:44px}button{border:1px solid var(--border);background:#fff;border-radius:8px;padding:8px 13px;cursor:pointer;color:var(--text)}button:hover{background:var(--pale)}button.primary{background:var(--green);border-color:var(--green);color:#fff}
 input,select,textarea{padding:9px;border:1px solid #bdcbc3;border-radius:7px;width:100%;background:#fff;color:var(--text)}
 label{font-weight:bold;display:block;margin-bottom:4px}
@@ -19,16 +19,16 @@ label{font-weight:bold;display:block;margin-bottom:4px}
 h2{font-size:22px;margin:0 0 10px}h3{font-size:18px;margin:10px 0}
 .muted{font-size:14px;color:var(--muted)}.hidden{display:none!important}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1;min-width:160px}
-.workspace{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}.reader-main{min-width:0}.dictionary-panel{position:sticky;top:74px;max-height:calc(100vh - 90px);overflow:auto;min-width:0}.text-material{width:100%;max-height:none;min-height:60vh}
+.workspace{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(370px,0.85fr);gap:16px;align-items:start}.reader-main{min-width:0}.dictionary-panel{position:static;max-height:none;overflow:visible;min-width:0}.text-material{width:100%;max-height:none;min-height:60vh}
 .panel{padding:0;overflow:hidden;min-width:0}
 .panel-title{padding:10px 14px;background:#edf3ef;border-bottom:1px solid var(--border);font-weight:bold}
 .panel-body{padding:13px}
 .pdf-stage{background:#e8ece9;padding:10px;max-height:70vh;overflow:auto;text-align:center}
-#pdfCanvas{display:block;max-width:100%;height:auto;background:white;margin:0 auto;box-shadow:0 1px 5px #999}.pdf-stage{background:#dfe4e1;padding:14px;max-height:76vh;overflow:auto;text-align:center}.pdf-page-wrap{display:flex;justify-content:center;min-width:0}
+#pdfCanvas{display:block;max-width:100%;height:auto;background:white;margin:0 auto;box-shadow:0 1px 5px #999}.pdf-stage{background:#dfe4e1;padding:14px;max-height:76vh;overflow:auto;text-align:center;overscroll-behavior:contain}.pdf-page-wrap{display:flex;justify-content:center;min-width:0}
 .pdf-page-layer{position:relative;display:inline-block;line-height:1}
 #pdfCanvas{position:relative;z-index:1}
 #pdfTextLayer{position:absolute;inset:0;z-index:2;overflow:hidden;text-align:left;line-height:1;user-select:text;-webkit-user-select:text}
-#pdfTextLayer span{position:absolute;white-space:pre;transform-origin:0% 0%;color:transparent;cursor:text;line-height:1;font-family:Arial,sans-serif}
+#pdfTextLayer span{position:absolute;white-space:pre;transform-origin:0% 0%;color:transparent;cursor:text;line-height:1;font-family:Arial,sans-serif;user-select:text;-webkit-user-select:text;touch-action:pan-x pan-y}
 #pdfTextLayer span::selection{background:rgba(75,160,255,.55);color:#10243a}
 #pageText{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;line-height:1.9;font-size:18px}
 #pageText::selection{background:#a9d7ff}
@@ -43,7 +43,7 @@ td:last-child,th:last-child{border-right:0}
 .flash-main{font-size:28px;font-weight:bold}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .small{font-size:13px}.notice{background:#fff7e5;border-left:4px solid #d2a142;padding:10px;font-size:14px;margin:10px 0}
 @media(max-width:900px){
-.workspace{grid-template-columns:minmax(0,1fr);gap:12px}.dictionary-panel{position:static;max-height:none;order:2}
+.workspace{grid-template-columns:minmax(0,1fr);gap:12px}.dictionary-panel{position:static;max-height:none;order:2;width:100%}.dictionary-panel .panel-body{padding:16px}.dictionary-panel textarea{min-height:100px}
 main{padding:8px}.card{padding:12px;margin-bottom:10px}body{font-size:17px;line-height:1.65}
 header{padding:14px 12px}header h1{font-size:24px}h2{font-size:20px}
 .pdf-stage{padding:4px;max-height:62vh;overflow:auto;touch-action:pan-x pan-y}
@@ -98,8 +98,8 @@ th,td{padding:8px;min-width:120px}
 <label for="selectedEnglish">1. English word</label><input id="selectedEnglish" placeholder="Type an English word" autocomplete="off">
 <label for="selectedVietnamese" style="margin-top:10px">2. Vietnamese meaning</label><textarea id="selectedVietnamese" rows="3" placeholder="Meaning will appear here when available, or type it yourself" aria-live="polite"></textarea>
 <form id="wordEntryForm" style="margin-top:14px">
-<input id="entryWord" type="hidden" required>
-<textarea id="entryMeaning" hidden required></textarea>
+<input id="entryWord" type="hidden">
+<textarea id="entryMeaning" hidden></textarea>
 <div class="toolbar save-toolbar"><button type="submit" id="saveWordBtn" class="primary">Save word</button><button type="button" id="clearEntryBtn">Clear fields</button></div>
 <div id="entryStatus" class="status" role="status">Your word will be saved under the selected subject and chapter.</div>
 </form>
@@ -324,7 +324,14 @@ $("saveReadingPdfBtn").addEventListener("click",async()=>{
 });
 // Standard browser selection and copy are used; no dictionary lookup runs.
 $("textMaterial").addEventListener("mouseup",()=>{});
-$("selectedEnglish").addEventListener("input",()=>{$("entryWord").value=$("selectedEnglish").value;});
+let manualLookupTimer=null;
+$("selectedEnglish").addEventListener("input",()=>{
+  const word=$("selectedEnglish").value.trim();
+  $("entryWord").value=word;
+  if(!word || $("selectedVietnamese").value.trim()) return;
+  clearTimeout(manualLookupTimer);
+  manualLookupTimer=setTimeout(()=>{ if($("selectedEnglish").value.trim()===word) showSelectedWord(word); },450);
+});
 $("selectedVietnamese").addEventListener("input",()=>{$("entryMeaning").value=$("selectedVietnamese").value;});
 let translationRequest=0;let translationPromise=Promise.resolve();let savingWord=false;let lastSelectedWord="";
 function getTranslationCache(){try{return JSON.parse(localStorage.getItem("study-en-vi-cache-v1")||"{}")}catch{return {}}}
@@ -337,7 +344,7 @@ function showSelectedWord(raw){
  $("selectedEnglish").value=word;$("entryWord").value=word;
  const cache=getTranslationCache(),cached=cache[word.toLowerCase()];
  const request=++translationRequest;
- if(cached){$("selectedVietnamese").value=cached;$("entryMeaning").value=cached;translationPromise=Promise.resolve();return translationPromise;}
+ if(cached){$("selectedVietnamese").value=cached;$("entryMeaning").value=cached;$("entryStatus").textContent="Meaning loaded. Tap Save word once.";translationPromise=Promise.resolve();return translationPromise;}
  // Keep the field usable immediately; automatic lookup is a convenience, not a requirement.
  $("selectedVietnamese").value="";$("entryMeaning").value="";
  translationPromise=(async()=>{try{
@@ -348,9 +355,9 @@ function showSelectedWord(raw){
   if(meaning&&!/MYMEMORY WARNING|PLEASE SELECT/i.test(meaning)){
    cache[word.toLowerCase()]=meaning;saveTranslationCache(cache);
    // Do not overwrite a meaning the user has started typing.
-   if(document.activeElement!==$("selectedVietnamese")||!$("selectedVietnamese").value){$("selectedVietnamese").value=meaning;$("entryMeaning").value=meaning;}
+   if(document.activeElement!==$("selectedVietnamese")||!$("selectedVietnamese").value){$("selectedVietnamese").value=meaning;$("entryMeaning").value=meaning;$("entryStatus").textContent="Vietnamese meaning loaded. Tap Save word once."}
   }
- }catch(e){/* Manual Vietnamese entry remains available if lookup fails. */}})();return translationPromise;
+ }catch(e){if(request===translationRequest)$("entryStatus").textContent="Automatic translation unavailable. Type the Vietnamese meaning, then tap Save word."}})();return translationPromise;
 }
 function handleTextSelection(){
  const sel=window.getSelection();if(!sel||!sel.toString().trim())return;
@@ -377,7 +384,7 @@ $("wordEntryForm").addEventListener("submit",async e=>{
   if(!finalMeaning){$("entryStatus").textContent="Translation unavailable. Type the Vietnamese meaning, then tap Save word.";return;}
   const existing=words.find(w=>w.word.toLowerCase()===word.toLowerCase());
   if(existing){existing.meaning=finalMeaning;persist();renderWords();renderFlash();$("entryStatus").textContent='Updated “'+word+'” and saved it.';}
-  else{words.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),word,meaning:finalMeaning,pos:"",ipa:"",connection:"",forms:"",synonyms:""});persist();renderWords();renderFlash();$("entryStatus").textContent='Saved “'+word+'” to this device.';}
+  else{words.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),word,meaning:finalMeaning,pos:"",ipa:"",connection:"",forms:"",synonyms:""});persist();renderWords();renderFlash();$("entryStatus").textContent='Saved “'+word+'” to this device. It now appears in Saved vocabulary.';}
   populateAllSubjects();
   $("entryWord").value="";$("entryMeaning").value="";
   $("selectedEnglish").value=word;$("selectedVietnamese").value=finalMeaning;
