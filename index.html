@@ -24,11 +24,11 @@ h2{font-size:22px;margin:0 0 10px}h3{font-size:18px;margin:10px 0}
 .panel-title{padding:10px 14px;background:#edf3ef;border-bottom:1px solid var(--border);font-weight:bold}
 .panel-body{padding:13px}
 .pdf-stage{background:#e8ece9;padding:10px;max-height:70vh;overflow:auto;text-align:center}
-#pdfCanvas{display:block;max-width:100%;height:auto;background:white;margin:0 auto;box-shadow:0 1px 5px #999}.pdf-stage{background:#dfe4e1;padding:14px;max-height:76vh;overflow:auto;text-align:center;overscroll-behavior:contain}.pdf-page-wrap{display:flex;justify-content:center;min-width:0}
+#pdfCanvas{display:block;max-width:none;width:auto;height:auto;background:white;margin:0 auto;box-shadow:0 1px 5px #999}.pdf-stage{background:#dfe4e1;padding:14px;max-height:76vh;overflow:auto;text-align:center;overscroll-behavior:contain}.pdf-page-wrap{display:flex;justify-content:center;min-width:max-content;width:max-content;margin:0 auto}
 .pdf-page-layer{position:relative;display:inline-block;line-height:1}
 #pdfCanvas{position:relative;z-index:1}
-#pdfTextLayer{position:absolute;inset:0;z-index:2;overflow:hidden;text-align:left;line-height:1;user-select:text;-webkit-user-select:text}
-#pdfTextLayer span{position:absolute;white-space:pre;transform-origin:0% 0%;color:transparent;cursor:text;line-height:1;font-family:Arial,sans-serif;user-select:text;-webkit-user-select:text;touch-action:pan-x pan-y}
+#pdfTextLayer{position:absolute;inset:0;z-index:2;overflow:visible;text-align:left;line-height:1;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:pan-x pan-y}
+#pdfTextLayer span{position:absolute;white-space:pre;transform-origin:0% 0%;color:transparent;cursor:text;line-height:1;font-family:Arial,sans-serif;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:pan-x pan-y}
 #pdfTextLayer span::selection{background:rgba(75,160,255,.55);color:#10243a}
 #pageText{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;line-height:1.9;font-size:18px}
 #pageText::selection{background:#a9d7ff}
@@ -42,12 +42,13 @@ td:last-child,th:last-child{border-right:0}
 .flashcard{min-height:190px;border:2px solid var(--green);border-radius:14px;background:#fafffc;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;cursor:pointer;overflow-wrap:anywhere}
 .flash-main{font-size:28px;font-weight:bold}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .small{font-size:13px}.notice{background:#fff7e5;border-left:4px solid #d2a142;padding:10px;font-size:14px;margin:10px 0}
+.flashcard{margin:12px 0;min-height:210px}
 @media(max-width:900px){
 .workspace{grid-template-columns:minmax(0,1fr);gap:12px}.dictionary-panel{position:static;max-height:none;order:2;width:100%}.dictionary-panel .panel-body{padding:16px}.dictionary-panel textarea{min-height:100px}
 main{padding:8px}.card{padding:12px;margin-bottom:10px}body{font-size:17px;line-height:1.65}
 header{padding:14px 12px}header h1{font-size:24px}h2{font-size:20px}
-.pdf-stage{padding:4px;max-height:62vh;overflow:auto;touch-action:pan-x pan-y}
-.pdf-page-wrap{justify-content:flex-start}.panel-body{padding:12px}
+.pdf-stage{padding:4px;max-height:62vh;overflow:auto;touch-action:pan-x pan-y pinch-zoom;-webkit-overflow-scrolling:touch}
+.pdf-page-wrap{justify-content:flex-start;margin:0;width:max-content;min-width:max-content}.panel-body{padding:12px}
 .toolbar{gap:8px}.toolbar button{flex:1 1 135px;padding:10px 12px}.save-toolbar{position:sticky;bottom:0;background:#fff;padding:8px 0;z-index:3}.save-toolbar #saveWordBtn{min-height:54px;font-size:19px;flex:1 1 100%;box-shadow:0 2px 8px #0002}.dictionary-panel{overflow:visible}.pdf-page-wrap{touch-action:pan-x pan-y pinch-zoom}.pdf-stage{touch-action:pan-x pan-y pinch-zoom}
 #selectedEnglish,#selectedVietnamese{font-size:18px}
 .text-material{font-size:20px!important;line-height:1.9;padding:14px;max-height:62vh}
@@ -75,7 +76,7 @@ th,td{padding:8px;min-width:120px}
 
 <div class="toolbar"><button id="readBtn" class="primary" disabled>Open study material</button></div>
 <div id="status" class="status" role="status">Choose a PDF, text file, or PowerPoint file to begin.</div>
-<p class="muted">Choose a file and open it. Select a word in the reading area; the dictionary appears below on phones. Use A− and A+ to resize the reading.</p>
+<p class="muted">Choose a file and open it. On phones, press and hold a word to select it. Use Zoom + / Zoom − to enlarge the PDF, then swipe horizontally if needed. The dictionary appears below the reading.</p>
 </section>
 
 <section id="readerCard" class="hidden">
@@ -111,7 +112,7 @@ th,td{padding:8px;min-width:120px}
 
 <section class="card" id="vocabCard">
 <h2>Saved vocabulary</h2>
-<p class="muted">Words you save while studying appear here automatically. The list is separated by subject and chapter and shows about 8–10 rows at a time; scroll inside the list to see more.</p>
+<p class="muted">Words you save while studying appear here automatically. Use the flashcards below to review saved words.</p>
 <div class="toolbar no-print">
 <button class="primary" id="compileBtn">Refresh chapter list</button><button id="exportBtn">Export CSV</button><button id="printBtn">Print / Save as PDF</button><button id="clearWordsBtn">Clear this chapter's words</button>
 </div>
@@ -123,8 +124,8 @@ th,td{padding:8px;min-width:120px}
 
 </section>
 
-<section class="card hidden" id="flashCardArea" aria-hidden="true">
-<h2>4. Vocabulary flashcards</h2>
+<section class="card" id="flashCardArea">
+<h2>Vocabulary flashcards</h2>
 <p class="muted">Use the saved chapter vocabulary to practice recalling meanings. Click the card to flip it.</p>
 <div class="toolbar no-print"><button id="prevFlash">Previous</button><button class="primary" id="flipFlash">Flip card</button><button id="nextFlash">Next</button><button id="shuffleFlash">Shuffle</button></div>
 <div id="flashcard" class="flashcard" tabindex="0" role="button" aria-label="Flashcard. Click to flip."><div><div class="flash-main">No saved words yet</div><div class="muted">The English word appears on the front; Vietnamese meaning appears when flipped.</div></div></div>
@@ -135,8 +136,8 @@ th,td{padding:8px;min-width:120px}
 <div class="toolbar no-print"><button id="reviewDueBtn" class="primary">Review due / not-yet-known</button><button id="reviewAllChapterBtn">Review all chapter words</button></div>
 </section>
 
-<section class="card hidden" id="allFlashArea" aria-hidden="true">
-<h2>5. Flashcards for any subject — without opening a chapter</h2>
+<section class="card" id="allFlashArea">
+<h2>All saved vocabulary flashcards</h2>
 <p>Choose a subject folder and optionally a chapter. Select “All subjects” to practice vocabulary across all saved subjects. This gathers words you have already saved in this browser.</p>
 <div class="row">
  <div><label for="allSubjectSelect">Subject / folder</label><select id="allSubjectSelect"><option value="">All subjects</option></select></div>
