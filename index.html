@@ -26,10 +26,12 @@ h2{font-size:22px;margin:0 0 10px}h3{font-size:18px;margin:10px 0}
 .pdf-stage{background:#e8ece9;padding:10px;max-height:70vh;overflow:auto;text-align:center}
 #pdfCanvas{display:block;max-width:none;width:auto;height:auto;background:white;margin:0 auto;box-shadow:0 1px 5px #999}.pdf-stage{background:#dfe4e1;padding:14px;max-height:76vh;overflow:auto;text-align:center;overscroll-behavior:contain}.pdf-page-wrap{display:flex;justify-content:center;min-width:max-content;width:max-content;margin:0 auto}
 .pdf-page-layer{position:relative;display:inline-block;line-height:1}
-#pdfCanvas{position:relative;z-index:1}
-#pdfTextLayer{position:absolute;inset:0;z-index:2;overflow:visible;text-align:left;line-height:1;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:pan-x pan-y}
-#pdfTextLayer span{position:absolute;white-space:pre;transform-origin:0% 0%;color:transparent;cursor:text;line-height:1;font-family:Arial,sans-serif;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:pan-x pan-y}
-#pdfTextLayer span::selection{background:rgba(75,160,255,.55);color:#10243a}
+#pdfCanvas{position:relative;z-index:1;pointer-events:none}
+#pdfTextLayer{position:absolute;inset:0;z-index:3;overflow:visible;text-align:left;line-height:1;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:auto;pointer-events:auto;-webkit-tap-highlight-color:rgba(75,160,255,.18)}
+#pdfTextLayer span{position:absolute;white-space:pre;transform-origin:0% 0%;color:rgba(0,0,0,.012);cursor:text;line-height:1;font-family:Arial,sans-serif;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:auto;pointer-events:auto}
+#pdfTextLayer span::selection{background:rgba(75,160,255,.62);color:#10243a}
+#pdfTextLayer span::-moz-selection{background:rgba(75,160,255,.62);color:#10243a}
+@media (pointer:coarse){#pdfTextLayer,#pdfTextLayer span{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;touch-action:auto}}
 #pageText{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;line-height:1.9;font-size:18px}
 #pageText::selection{background:#a9d7ff}
 .status{padding:9px;background:#f0f5f2;border-radius:7px;overflow-wrap:anywhere}.text-material{background:#fff;white-space:pre-wrap;line-height:1.85;font-size:19px;padding:20px;max-height:70vh;overflow:auto;border:1px solid var(--border);border-radius:8px;user-select:text}.text-material::selection{background:#a9d7ff}
@@ -349,8 +351,7 @@ function handleTextSelection(){
  const chosen=sel.toString().trim();showSelectedWord(chosen);
 }
 document.addEventListener("mouseup",handleTextSelection);
-document.addEventListener("touchend",handleTextSelection,{passive:true});
-document.addEventListener("touchend",()=>setTimeout(handleTextSelection,180),{passive:true});
+document.addEventListener("touchend",()=>setTimeout(handleTextSelection,250),{passive:true});
 document.addEventListener("selectionchange",()=>{clearTimeout(window.__studySelectionTimer);window.__studySelectionTimer=setTimeout(handleTextSelection,120)});
 document.addEventListener("keyup",e=>{if(["Shift","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Control","Meta"].includes(e.key))handleTextSelection()});
 function inferPartOfSpeech(word){
